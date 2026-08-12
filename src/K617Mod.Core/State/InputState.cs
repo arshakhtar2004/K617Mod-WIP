@@ -21,6 +21,12 @@ public sealed class InputState : IInputState
     private const string SteerRightAction = "STEER_RIGHT";
     private const string AccelerateAction = "RT_ACCELERATE";
     private const string BrakeAction = "LT_BRAKE";
+    private const string LeftStickUpAction = "LS_UP";
+    private const string LeftStickDownAction = "LS_DOWN";
+    private const string RightStickLeftAction = "RS_LEFT";
+    private const string RightStickRightAction = "RS_RIGHT";
+    private const string RightStickUpAction = "RS_UP";
+    private const string RightStickDownAction = "RS_DOWN";
 
     private readonly object _lock = new();
     private readonly Dictionary<string, double> _values;
@@ -31,6 +37,12 @@ public sealed class InputState : IInputState
     private readonly string? _steerRightKey;
     private readonly string? _accelerateKey;
     private readonly string? _brakeKey;
+    private readonly string? _leftStickUpKey;
+    private readonly string? _leftStickDownKey;
+    private readonly string? _rightStickLeftKey;
+    private readonly string? _rightStickRightKey;
+    private readonly string? _rightStickUpKey;
+    private readonly string? _rightStickDownKey;
 
     /// <param name="tuning">
     /// Where curves and the digital threshold come from - normally the
@@ -61,6 +73,12 @@ public sealed class InputState : IInputState
                 case SteerRightAction: _steerRightKey = keyName; break;
                 case AccelerateAction: _accelerateKey = keyName; break;
                 case BrakeAction: _brakeKey = keyName; break;
+                case LeftStickUpAction: _leftStickUpKey = keyName; break;
+                case LeftStickDownAction: _leftStickDownKey = keyName; break;
+                case RightStickLeftAction: _rightStickLeftKey = keyName; break;
+                case RightStickRightAction: _rightStickRightKey = keyName; break;
+                case RightStickUpAction: _rightStickUpKey = keyName; break;
+                case RightStickDownAction: _rightStickDownKey = keyName; break;
             }
         }
     }
@@ -88,9 +106,13 @@ public sealed class InputState : IInputState
 
         lock (_lock)
         {
-            var left = tuning.Steering.Evaluate(GetValue(_steerLeftKey));
-            var right = tuning.Steering.Evaluate(GetValue(_steerRightKey));
-            var steering = Math.Clamp(right - left, -1.0, 1.0);
+            // Each axis is two opposing keys sharing one curve, combined
+            // into a single -1..1 value. Pressing both at once cancels
+            // out, exactly as pushing a real stick two ways would.
+            var leftStickX = Axis(tuning.CurveFor(CurveAxes.LeftStickX), _steerRightKey, _steerLeftKey);
+            var leftStickY = Axis(tuning.CurveFor(CurveAxes.LeftStickY), _leftStickUpKey, _leftStickDownKey);
+            var rightStickX = Axis(tuning.CurveFor(CurveAxes.RightStickX), _rightStickRightKey, _rightStickLeftKey);
+            var rightStickY = Axis(tuning.CurveFor(CurveAxes.RightStickY), _rightStickUpKey, _rightStickDownKey);
 
             var accelerate = tuning.Accelerate.Evaluate(GetValue(_accelerateKey));
             var brake = tuning.Brake.Evaluate(GetValue(_brakeKey));
@@ -101,8 +123,21 @@ public sealed class InputState : IInputState
                 digitalStates[action] = GetValue(keyName) >= tuning.DigitalPressThreshold;
             }
 
-            return new ControllerStateSnapshot(steering, accelerate, brake, digitalStates);
+            return new ControllerStateSnapshot(
+                leftStickX, leftStickY, rightStickX, rightStickY,
+                accelerate, brake, digitalStates);
         }
+    }
+
+    /// <summary>
+    /// Combines the two keys of one axis into -1..1. Must be called
+    /// while already holding _lock.
+    /// </summary>
+    private double Axis(ResponseCurve curve, string? positiveKey, string? negativeKey)
+    {
+        var positive = curve.Evaluate(GetValue(positiveKey));
+        var negative = curve.Evaluate(GetValue(negativeKey));
+        return Math.Clamp(positive - negative, -1.0, 1.0);
     }
 
     /// <summary>Must be called while already holding _lock.</summary>

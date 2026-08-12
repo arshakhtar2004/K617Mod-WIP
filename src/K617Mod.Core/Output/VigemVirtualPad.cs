@@ -35,8 +35,10 @@ public sealed class VigemVirtualPad : IVirtualPad
 
     public void Apply(ControllerStateSnapshot snapshot)
     {
-        _controller.SetAxisValue(Xbox360Axis.LeftThumbX, ToAxisValue(snapshot.Steering));
-        _controller.SetAxisValue(Xbox360Axis.LeftThumbY, 0); // unused - FH6 steering is X-axis only
+        _controller.SetAxisValue(Xbox360Axis.LeftThumbX, ToAxisValue(snapshot.LeftStickX));
+        _controller.SetAxisValue(Xbox360Axis.LeftThumbY, ToAxisValue(snapshot.LeftStickY));
+        _controller.SetAxisValue(Xbox360Axis.RightThumbX, ToAxisValue(snapshot.RightStickX));
+        _controller.SetAxisValue(Xbox360Axis.RightThumbY, ToAxisValue(snapshot.RightStickY));
 
         _controller.SetSliderValue(Xbox360Slider.RightTrigger, ToTriggerValue(snapshot.Accelerate));
         _controller.SetSliderValue(Xbox360Slider.LeftTrigger, ToTriggerValue(snapshot.Brake));
@@ -54,6 +56,8 @@ public sealed class VigemVirtualPad : IVirtualPad
     {
         _controller.SetAxisValue(Xbox360Axis.LeftThumbX, 0);
         _controller.SetAxisValue(Xbox360Axis.LeftThumbY, 0);
+        _controller.SetAxisValue(Xbox360Axis.RightThumbX, 0);
+        _controller.SetAxisValue(Xbox360Axis.RightThumbY, 0);
         _controller.SetSliderValue(Xbox360Slider.RightTrigger, 0);
         _controller.SetSliderValue(Xbox360Slider.LeftTrigger, 0);
 

@@ -54,16 +54,25 @@
       "D": { "action": "DPAD_RIGHT", "kind": "digital" },
 
       "H": { "action": "L3_HORN", "kind": "digital" },
+      "Y": { "action": "R3", "kind": "digital" },
+
       "M": { "action": "VIEW_SCOREBOARD", "kind": "digital" },
-      "ESC": { "action": "MENU_PAUSE", "kind": "digital" }
+      "ESC": { "action": "MENU_PAUSE", "kind": "digital" },
+      "TAB": { "action": "GUIDE", "kind": "digital" },
+
+      "O": { "action": "LS_UP", "kind": "analog" },
+      "N": { "action": "LS_DOWN", "kind": "analog" },
+
+      "T": { "action": "RS_UP", "kind": "analog" },
+      "V": { "action": "RS_DOWN", "kind": "analog" },
+      "F": { "action": "RS_LEFT", "kind": "analog" },
+      "G": { "action": "RS_RIGHT", "kind": "analog" }
     },
 
     "ReservedSpareKeys": [
-      "TAB",
       "1", "2", "3", "4", "5", "6", "7",
-      "T", "Y", "U", "O", "P",
-      "F", "G",
-      "Z", "X", "C", "V", "N"
+      "U", "P",
+      "Z", "X", "C"
     ]
   }
 }

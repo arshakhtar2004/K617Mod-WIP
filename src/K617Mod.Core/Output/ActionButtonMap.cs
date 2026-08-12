@@ -36,8 +36,11 @@ public static class ActionButtonMap
         ["DPAD_RIGHT"] = Xbox360Button.Right,
 
         ["L3_HORN"] = Xbox360Button.LeftThumb,
+        ["R3"] = Xbox360Button.RightThumb,
+
         ["VIEW_SCOREBOARD"] = Xbox360Button.Back,
         ["MENU_PAUSE"] = Xbox360Button.Start,
+        ["GUIDE"] = Xbox360Button.Guide,
     };
 
     /// <summary>True if this action name has a real button wired to it.
