@@ -24,6 +24,7 @@
 
   <ItemGroup>
     <None Include="Mapping\Data\keymapping.default.json" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="Mapping\Data\profile.default.json" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
 
 </Project>
