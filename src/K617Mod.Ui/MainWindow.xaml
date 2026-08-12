@@ -7,14 +7,114 @@
         WindowStartupLocation="CenterScreen"
         Background="#1E1E1E">
 
-    <!-- Empty canvas, on purpose. Features get added into this grid one
-         at a time: ON/OFF + status, then profile selector, then key
-         remap, then the curve editor. -->
-    <Grid>
-        <TextBlock Text="K617 HE Racing Mod"
-                   Foreground="#DDDDDD"
-                   FontSize="22"
-                   HorizontalAlignment="Center"
-                   VerticalAlignment="Center" />
+    <Window.Resources>
+        <!-- Built into WPF. Turns the nav item's IsChecked into
+             Visible/Collapsed for the matching panel, so which panel
+             shows is decided entirely in XAML - no code-behind. -->
+        <BooleanToVisibilityConverter x:Key="BoolToVis" />
+
+        <!-- A nav item is really a RadioButton: picking one
+             automatically unpicks the others, which is exactly the
+             behaviour wanted, and it comes free. The template below
+             just strips the little radio circle and makes it look like
+             a sidebar row instead. -->
+        <Style x:Key="NavItemStyle" TargetType="RadioButton">
+            <Setter Property="Foreground" Value="#CCCCCC" />
+            <Setter Property="FontSize" Value="14" />
+            <Setter Property="Padding" Value="14,10" />
+            <Setter Property="Margin" Value="0,0,0,4" />
+            <Setter Property="Cursor" Value="Hand" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="RadioButton">
+                        <Border x:Name="Bg"
+                                Background="Transparent"
+                                CornerRadius="4"
+                                Padding="{TemplateBinding Padding}">
+                            <ContentPresenter HorizontalAlignment="Left"
+                                              VerticalAlignment="Center" />
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="Bg" Property="Background" Value="#2A2D2E" />
+                            </Trigger>
+                            <Trigger Property="IsChecked" Value="True">
+                                <Setter TargetName="Bg" Property="Background" Value="#094771" />
+                                <Setter Property="Foreground" Value="#FFFFFF" />
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <!-- Shared look for each setting page's heading. -->
+        <Style x:Key="PageHeadingStyle" TargetType="TextBlock">
+            <Setter Property="Foreground" Value="#FFFFFF" />
+            <Setter Property="FontSize" Value="20" />
+            <Setter Property="Margin" Value="0,0,0,12" />
+        </Style>
+
+        <Style x:Key="PlaceholderStyle" TargetType="TextBlock">
+            <Setter Property="Foreground" Value="#8A8A8A" />
+            <Setter Property="FontSize" Value="13" />
+            <Setter Property="TextWrapping" Value="Wrap" />
+        </Style>
+    </Window.Resources>
+
+    <!-- Margin here gives the gap on the left of the nav, and on the
+         right of the content area. The gap between the two comes from
+         the content Border's own left margin below. -->
+    <Grid Margin="16">
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="190" />
+            <ColumnDefinition Width="*" />
+        </Grid.ColumnDefinitions>
+
+        <!-- LEFT: setting selector -->
+        <StackPanel Grid.Column="0">
+            <RadioButton x:Name="NavRemapKeys"
+                         Content="Remap Keys"
+                         GroupName="Settings"
+                         IsChecked="True"
+                         Style="{StaticResource NavItemStyle}" />
+            <RadioButton x:Name="NavB"
+                         Content="B"
+                         GroupName="Settings"
+                         Style="{StaticResource NavItemStyle}" />
+            <RadioButton x:Name="NavC"
+                         Content="C"
+                         GroupName="Settings"
+                         Style="{StaticResource NavItemStyle}" />
+        </StackPanel>
+
+        <!-- RIGHT: the canvas the selected setting draws into. Each
+             page sits in the same cell and only one is visible at a
+             time, driven by the nav selection. -->
+        <Border Grid.Column="1"
+                Background="#252526"
+                CornerRadius="6"
+                Margin="16,0,0,0"
+                Padding="20">
+            <Grid>
+                <StackPanel Visibility="{Binding IsChecked, ElementName=NavRemapKeys, Converter={StaticResource BoolToVis}}">
+                    <TextBlock Text="Remap Keys" Style="{StaticResource PageHeadingStyle}" />
+                    <TextBlock Style="{StaticResource PlaceholderStyle}"
+                               Text="Pick a controller action and choose which physical key drives it. Nothing here yet." />
+                </StackPanel>
+
+                <StackPanel Visibility="{Binding IsChecked, ElementName=NavB, Converter={StaticResource BoolToVis}}">
+                    <TextBlock Text="B" Style="{StaticResource PageHeadingStyle}" />
+                    <TextBlock Style="{StaticResource PlaceholderStyle}"
+                               Text="To be decided." />
+                </StackPanel>
+
+                <StackPanel Visibility="{Binding IsChecked, ElementName=NavC, Converter={StaticResource BoolToVis}}">
+                    <TextBlock Text="C" Style="{StaticResource PageHeadingStyle}" />
+                    <TextBlock Style="{StaticResource PlaceholderStyle}"
+                               Text="To be decided." />
+                </StackPanel>
+            </Grid>
+        </Border>
     </Grid>
 </Window>
