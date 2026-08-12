@@ -122,14 +122,31 @@
                 </ListBox.ItemTemplate>
             </ListBox>
 
-            <StackPanel Grid.Column="1" Margin="16,0,0,0">
+            <!-- Grid, not StackPanel. A StackPanel hands its children
+                 unlimited height, so the editor's Viewbox never learns
+                 it is short on space, renders at full size and pushes
+                 the preset buttons off the bottom of the window. With a
+                 star row the editor gets a real height to fit into and
+                 scales down instead, keeping the buttons on screen at
+                 any window size. -->
+            <Grid Grid.Column="1" Margin="16,0,0,0">
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="*" MinHeight="180" />
+                    <RowDefinition Height="Auto" />
+                </Grid.RowDefinitions>
+
                 <TextBlock x:Name="AxisDescription"
+                           Grid.Row="0"
                            Foreground="#8A8A8A" FontSize="12"
                            TextWrapping="Wrap" Margin="0,0,0,8" />
 
-                <local:CurveEditor x:Name="Editor" CurveChanged="Editor_CurveChanged" />
+                <local:CurveEditor x:Name="Editor" Grid.Row="1"
+                                   VerticalAlignment="Stretch"
+                                   HorizontalAlignment="Left"
+                                   CurveChanged="Editor_CurveChanged" />
 
-                <StackPanel Orientation="Horizontal" Margin="0,12,0,0">
+                <WrapPanel Grid.Row="2" Orientation="Horizontal" Margin="0,12,0,0">
                     <Button Content="Linear" Style="{StaticResource PresetButtonStyle}"
                             IsEnabled="{Binding IsEditable}" Click="PresetLinear_Click" />
                     <Button Content="Soft (squared)" Style="{StaticResource PresetButtonStyle}"
@@ -138,8 +155,8 @@
                             IsEnabled="{Binding IsEditable}" Click="PresetSharp_Click" />
                     <Button Content="Deadzone 15%" Style="{StaticResource PresetButtonStyle}"
                             IsEnabled="{Binding IsEditable}" Click="PresetDeadzone_Click" />
-                </StackPanel>
-            </StackPanel>
+                </WrapPanel>
+            </Grid>
         </Grid>
     </DockPanel>
 </UserControl>

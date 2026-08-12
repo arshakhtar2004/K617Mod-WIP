@@ -26,9 +26,9 @@ namespace K617Mod.Ui;
 public partial class CurveEditor : UserControl
 {
     // Plot area inside the canvas, leaving room for axis labels.
-    private const double Left = 54;
+    private const double Left = 58;
     private const double Top = 22;
-    private const double PlotWidth = 386;
+    private const double PlotWidth = 382;
     private const double PlotHeight = 332;
     private const double Bottom = Top + PlotHeight;
     private const double Right = Left + PlotWidth;
@@ -212,7 +212,7 @@ public partial class CurveEditor : UserControl
                 Foreground = labelBrush,
                 FontSize = 10,
             };
-            Canvas.SetLeft(yLabel, Left - 34);
+            Canvas.SetLeft(yLabel, Left - 30);
             Canvas.SetTop(yLabel, ToPlotY(fraction) - 7);
             Plot.Children.Add(yLabel);
         }
@@ -250,6 +250,10 @@ public partial class CurveEditor : UserControl
         Canvas.SetTop(xTitle, Bottom + 22);
         Plot.Children.Add(xTitle);
 
+        // Rotating -90 about the element's own origin sends the text
+        // upward and leftward from wherever it is placed, so this sits
+        // hard against the canvas edge - clear of the percentage labels,
+        // which start at Left - 30.
         var yTitle = new TextBlock
         {
             Text = "Controller output",
@@ -258,7 +262,7 @@ public partial class CurveEditor : UserControl
             RenderTransform = new RotateTransform(-90),
             RenderTransformOrigin = new Point(0, 0),
         };
-        Canvas.SetLeft(yTitle, 14);
+        Canvas.SetLeft(yTitle, 2);
         Canvas.SetTop(yTitle, Top + PlotHeight / 2 + 48);
         Plot.Children.Add(yTitle);
 
