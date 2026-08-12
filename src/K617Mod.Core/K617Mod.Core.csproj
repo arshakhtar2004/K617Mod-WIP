@@ -24,7 +24,10 @@
 
   <ItemGroup>
     <None Include="Mapping\Data\keymapping.default.json" CopyToOutputDirectory="PreserveNewest" />
-    <None Include="Mapping\Data\profile.default.json" CopyToOutputDirectory="PreserveNewest" />
+    <!-- Content, not None, on purpose: Content flows through a
+         ProjectReference into the referencing project's output folder,
+         None does not. K617Mod.Ui needs this file next to its own exe. -->
+    <Content Include="Mapping\Data\profile.default.json" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
 
 </Project>

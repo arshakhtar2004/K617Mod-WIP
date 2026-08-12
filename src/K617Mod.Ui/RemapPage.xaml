@@ -1,0 +1,314 @@
+<UserControl x:Class="K617Mod.Ui.RemapPage"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+
+    <UserControl.Resources>
+        <!-- Controller silhouette and controls. Drawn as vector shapes
+             rather than loaded from an image: no binary asset in the
+             repo, no licensing question on a public project, and it
+             stays sharp at any window size. -->
+        <SolidColorBrush x:Key="BodyFill"    Color="#3A3D41" />
+        <SolidColorBrush x:Key="BodyStroke"  Color="#55595E" />
+        <SolidColorBrush x:Key="ControlFill" Color="#4E535A" />
+        <SolidColorBrush x:Key="LeaderLine"  Color="#6E7681" />
+        <SolidColorBrush x:Key="LabelName"   Color="#9DA5B4" />
+        <SolidColorBrush x:Key="LabelKey"    Color="#FFFFFF" />
+
+        <Style x:Key="ControlShapeStyle" TargetType="Shape">
+            <Setter Property="Fill" Value="{StaticResource ControlFill}" />
+            <Setter Property="Stroke" Value="{StaticResource BodyStroke}" />
+            <Setter Property="StrokeThickness" Value="1" />
+        </Style>
+
+        <Style x:Key="LeaderStyle" TargetType="Line">
+            <Setter Property="Stroke" Value="{StaticResource LeaderLine}" />
+            <Setter Property="StrokeThickness" Value="1" />
+            <Setter Property="StrokeDashArray" Value="3 3" />
+        </Style>
+
+        <!-- One row of a callout: control name on the left, currently
+             mapped key on the right. -->
+        <Style x:Key="RowNameStyle" TargetType="TextBlock">
+            <Setter Property="Foreground" Value="{StaticResource LabelName}" />
+            <Setter Property="FontSize" Value="12" />
+            <Setter Property="Width" Value="96" />
+        </Style>
+
+        <Style x:Key="RowKeyStyle" TargetType="TextBlock">
+            <Setter Property="Foreground" Value="{StaticResource LabelKey}" />
+            <Setter Property="FontSize" Value="12" />
+            <Setter Property="FontWeight" Value="SemiBold" />
+        </Style>
+
+        <Style x:Key="InlineLabelStyle" TargetType="TextBlock">
+            <Setter Property="Foreground" Value="{StaticResource LabelName}" />
+            <Setter Property="FontSize" Value="11" />
+        </Style>
+    </UserControl.Resources>
+
+    <DockPanel>
+        <TextBlock DockPanel.Dock="Top"
+                   Text="Remap Keys"
+                   Foreground="#FFFFFF"
+                   FontSize="20"
+                   Margin="0,0,0,4" />
+
+        <TextBlock DockPanel.Dock="Top"
+                   Text="Each control shows the key currently bound to it in the Default profile. Read-only for now."
+                   Foreground="#8A8A8A"
+                   FontSize="12"
+                   TextWrapping="Wrap"
+                   Margin="0,0,0,8" />
+
+        <!-- Only visible when the profile failed to load - otherwise a
+             silent blank diagram would look like a drawing bug. -->
+        <TextBlock DockPanel.Dock="Top"
+                   Text="{Binding LoadError}"
+                   Foreground="#E06C75"
+                   FontSize="12"
+                   TextWrapping="Wrap"
+                   Margin="0,0,0,8">
+            <TextBlock.Style>
+                <Style TargetType="TextBlock">
+                    <Setter Property="Visibility" Value="Visible" />
+                    <Style.Triggers>
+                        <DataTrigger Binding="{Binding LoadError}" Value="">
+                            <Setter Property="Visibility" Value="Collapsed" />
+                        </DataTrigger>
+                    </Style.Triggers>
+                </Style>
+            </TextBlock.Style>
+        </TextBlock>
+
+        <!-- Viewbox: the canvas below is authored at a fixed 820x580 so
+             every coordinate is a plain number, and the Viewbox scales
+             the whole thing to whatever space the window gives it. -->
+        <Viewbox Stretch="Uniform" HorizontalAlignment="Center" VerticalAlignment="Top">
+            <Canvas Width="820" Height="580">
+
+                <!-- ============ CONTROLLER BODY ============ -->
+
+                <!-- Grips first so the body overlaps them cleanly -->
+                <Rectangle Canvas.Left="248" Canvas.Top="222" Width="70" Height="150"
+                           RadiusX="34" RadiusY="34"
+                           Fill="{StaticResource BodyFill}" Stroke="{StaticResource BodyStroke}" StrokeThickness="1.5"
+                           RenderTransformOrigin="0.5,0.15">
+                    <Rectangle.RenderTransform>
+                        <RotateTransform Angle="20" />
+                    </Rectangle.RenderTransform>
+                </Rectangle>
+
+                <Rectangle Canvas.Left="502" Canvas.Top="222" Width="70" Height="150"
+                           RadiusX="34" RadiusY="34"
+                           Fill="{StaticResource BodyFill}" Stroke="{StaticResource BodyStroke}" StrokeThickness="1.5"
+                           RenderTransformOrigin="0.5,0.15">
+                    <Rectangle.RenderTransform>
+                        <RotateTransform Angle="-20" />
+                    </Rectangle.RenderTransform>
+                </Rectangle>
+
+                <!-- Triggers (sit furthest back) -->
+                <Rectangle Canvas.Left="268" Canvas.Top="94" Width="52" Height="24"
+                           RadiusX="10" RadiusY="10" Style="{StaticResource ControlShapeStyle}" />
+                <Rectangle Canvas.Left="500" Canvas.Top="94" Width="52" Height="24"
+                           RadiusX="10" RadiusY="10" Style="{StaticResource ControlShapeStyle}" />
+
+                <!-- Shoulder bumpers -->
+                <Rectangle Canvas.Left="255" Canvas.Top="118" Width="78" Height="26"
+                           RadiusX="12" RadiusY="12" Style="{StaticResource ControlShapeStyle}" />
+                <Rectangle Canvas.Left="487" Canvas.Top="118" Width="78" Height="26"
+                           RadiusX="12" RadiusY="12" Style="{StaticResource ControlShapeStyle}" />
+
+                <!-- Main body -->
+                <Rectangle Canvas.Left="235" Canvas.Top="138" Width="350" Height="122"
+                           RadiusX="52" RadiusY="52"
+                           Fill="{StaticResource BodyFill}" Stroke="{StaticResource BodyStroke}" StrokeThickness="1.5" />
+
+                <!-- ============ CONTROLS ============ -->
+
+                <!-- Left stick, centre (300,180) -->
+                <Ellipse Canvas.Left="272" Canvas.Top="152" Width="56" Height="56"
+                         Style="{StaticResource ControlShapeStyle}" />
+                <Ellipse Canvas.Left="284" Canvas.Top="164" Width="32" Height="32"
+                         Fill="#5D636B" Stroke="{StaticResource BodyStroke}" StrokeThickness="1" />
+
+                <!-- Right stick, centre (470,255) -->
+                <Ellipse Canvas.Left="442" Canvas.Top="227" Width="56" Height="56"
+                         Style="{StaticResource ControlShapeStyle}" />
+                <Ellipse Canvas.Left="454" Canvas.Top="239" Width="32" Height="32"
+                         Fill="#5D636B" Stroke="{StaticResource BodyStroke}" StrokeThickness="1" />
+
+                <!-- D-Pad, centre (350,255) -->
+                <Rectangle Canvas.Left="324" Canvas.Top="246" Width="52" Height="18"
+                           RadiusX="4" RadiusY="4" Style="{StaticResource ControlShapeStyle}" />
+                <Rectangle Canvas.Left="341" Canvas.Top="229" Width="18" Height="52"
+                           RadiusX="4" RadiusY="4" Style="{StaticResource ControlShapeStyle}" />
+
+                <!-- Face buttons, cluster centre (520,180) -->
+                <Ellipse Canvas.Left="506" Canvas.Top="138" Width="28" Height="28"
+                         Style="{StaticResource ControlShapeStyle}" />
+                <TextBlock Canvas.Left="516" Canvas.Top="144" Text="Y" Foreground="#C8CDD4" FontSize="12" />
+
+                <Ellipse Canvas.Left="506" Canvas.Top="194" Width="28" Height="28"
+                         Style="{StaticResource ControlShapeStyle}" />
+                <TextBlock Canvas.Left="516" Canvas.Top="200" Text="A" Foreground="#C8CDD4" FontSize="12" />
+
+                <Ellipse Canvas.Left="478" Canvas.Top="166" Width="28" Height="28"
+                         Style="{StaticResource ControlShapeStyle}" />
+                <TextBlock Canvas.Left="488" Canvas.Top="172" Text="X" Foreground="#C8CDD4" FontSize="12" />
+
+                <Ellipse Canvas.Left="534" Canvas.Top="166" Width="28" Height="28"
+                         Style="{StaticResource ControlShapeStyle}" />
+                <TextBlock Canvas.Left="544" Canvas.Top="172" Text="B" Foreground="#C8CDD4" FontSize="12" />
+
+                <!-- View / Menu / Guide sit in the middle of the pad, so
+                     they get short inline labels instead of callout
+                     lines - a leader line from the edge would have to
+                     cross the whole controller. -->
+                <Rectangle Canvas.Left="368" Canvas.Top="168" Width="22" Height="15"
+                           RadiusX="4" RadiusY="4" Style="{StaticResource ControlShapeStyle}" />
+                <Rectangle Canvas.Left="430" Canvas.Top="168" Width="22" Height="15"
+                           RadiusX="4" RadiusY="4" Style="{StaticResource ControlShapeStyle}" />
+                <Ellipse Canvas.Left="397" Canvas.Top="145" Width="26" Height="26"
+                         Style="{StaticResource ControlShapeStyle}" />
+
+                <StackPanel Canvas.Left="332" Canvas.Top="192" Orientation="Horizontal">
+                    <TextBlock Text="View " Style="{StaticResource InlineLabelStyle}" />
+                    <TextBlock Text="{Binding KeyForAction[VIEW_SCOREBOARD]}" Style="{StaticResource RowKeyStyle}" />
+                </StackPanel>
+
+                <StackPanel Canvas.Left="428" Canvas.Top="192" Orientation="Horizontal">
+                    <TextBlock Text="Menu " Style="{StaticResource InlineLabelStyle}" />
+                    <TextBlock Text="{Binding KeyForAction[MENU_PAUSE]}" Style="{StaticResource RowKeyStyle}" />
+                </StackPanel>
+
+                <StackPanel Canvas.Left="378" Canvas.Top="122" Orientation="Horizontal">
+                    <TextBlock Text="Guide " Style="{StaticResource InlineLabelStyle}" />
+                    <TextBlock Text="{Binding KeyForAction[GUIDE]}" Style="{StaticResource RowKeyStyle}" />
+                </StackPanel>
+
+                <!-- ============ LEADER LINES ============ -->
+                <Line X1="152" Y1="62"  X2="286" Y2="103" Style="{StaticResource LeaderStyle}" />
+                <Line X1="152" Y1="102" X2="272" Y2="130" Style="{StaticResource LeaderStyle}" />
+                <Line X1="178" Y1="172" X2="274" Y2="178" Style="{StaticResource LeaderStyle}" />
+                <Line X1="178" Y1="310" X2="326" Y2="252" Style="{StaticResource LeaderStyle}" />
+
+                <Line X1="668" Y1="62"  X2="534" Y2="103" Style="{StaticResource LeaderStyle}" />
+                <Line X1="668" Y1="102" X2="548" Y2="130" Style="{StaticResource LeaderStyle}" />
+                <Line X1="642" Y1="172" X2="562" Y2="180" Style="{StaticResource LeaderStyle}" />
+                <Line X1="642" Y1="310" X2="498" Y2="258" Style="{StaticResource LeaderStyle}" />
+
+                <!-- ============ LEFT CALLOUTS ============ -->
+                <StackPanel Canvas.Left="15" Canvas.Top="54" Orientation="Horizontal">
+                    <TextBlock Text="LT" Style="{StaticResource RowNameStyle}" />
+                    <TextBlock Text="{Binding KeyForAction[LT_BRAKE]}" Style="{StaticResource RowKeyStyle}" />
+                </StackPanel>
+
+                <StackPanel Canvas.Left="15" Canvas.Top="94" Orientation="Horizontal">
+                    <TextBlock Text="LB" Style="{StaticResource RowNameStyle}" />
+                    <TextBlock Text="{Binding KeyForAction[LB_SHIFT_DOWN]}" Style="{StaticResource RowKeyStyle}" />
+                </StackPanel>
+
+                <StackPanel Canvas.Left="15" Canvas.Top="140">
+                    <TextBlock Text="LEFT STICK" Foreground="#6E7681" FontSize="10" Margin="0,0,0,4" />
+                    <StackPanel Orientation="Horizontal">
+                        <TextBlock Text="Left" Style="{StaticResource RowNameStyle}" />
+                        <TextBlock Text="{Binding KeyForAction[STEER_LEFT]}" Style="{StaticResource RowKeyStyle}" />
+                    </StackPanel>
+                    <StackPanel Orientation="Horizontal">
+                        <TextBlock Text="Right" Style="{StaticResource RowNameStyle}" />
+                        <TextBlock Text="{Binding KeyForAction[STEER_RIGHT]}" Style="{StaticResource RowKeyStyle}" />
+                    </StackPanel>
+                    <StackPanel Orientation="Horizontal">
+                        <TextBlock Text="Up" Style="{StaticResource RowNameStyle}" />
+                        <TextBlock Text="{Binding KeyForAction[LS_UP]}" Style="{StaticResource RowKeyStyle}" />
+                    </StackPanel>
+                    <StackPanel Orientation="Horizontal">
+                        <TextBlock Text="Down" Style="{StaticResource RowNameStyle}" />
+                        <TextBlock Text="{Binding KeyForAction[LS_DOWN]}" Style="{StaticResource RowKeyStyle}" />
+                    </StackPanel>
+                    <StackPanel Orientation="Horizontal">
+                        <TextBlock Text="L3 (click)" Style="{StaticResource RowNameStyle}" />
+                        <TextBlock Text="{Binding KeyForAction[L3_HORN]}" Style="{StaticResource RowKeyStyle}" />
+                    </StackPanel>
+                </StackPanel>
+
+                <StackPanel Canvas.Left="15" Canvas.Top="278">
+                    <TextBlock Text="D-PAD" Foreground="#6E7681" FontSize="10" Margin="0,0,0,4" />
+                    <StackPanel Orientation="Horizontal">
+                        <TextBlock Text="Up" Style="{StaticResource RowNameStyle}" />
+                        <TextBlock Text="{Binding KeyForAction[DPAD_UP]}" Style="{StaticResource RowKeyStyle}" />
+                    </StackPanel>
+                    <StackPanel Orientation="Horizontal">
+                        <TextBlock Text="Down" Style="{StaticResource RowNameStyle}" />
+                        <TextBlock Text="{Binding KeyForAction[DPAD_DOWN]}" Style="{StaticResource RowKeyStyle}" />
+                    </StackPanel>
+                    <StackPanel Orientation="Horizontal">
+                        <TextBlock Text="Left" Style="{StaticResource RowNameStyle}" />
+                        <TextBlock Text="{Binding KeyForAction[DPAD_LEFT]}" Style="{StaticResource RowKeyStyle}" />
+                    </StackPanel>
+                    <StackPanel Orientation="Horizontal">
+                        <TextBlock Text="Right" Style="{StaticResource RowNameStyle}" />
+                        <TextBlock Text="{Binding KeyForAction[DPAD_RIGHT]}" Style="{StaticResource RowKeyStyle}" />
+                    </StackPanel>
+                </StackPanel>
+
+                <!-- ============ RIGHT CALLOUTS ============ -->
+                <StackPanel Canvas.Left="672" Canvas.Top="54" Orientation="Horizontal">
+                    <TextBlock Text="RT" Style="{StaticResource RowNameStyle}" />
+                    <TextBlock Text="{Binding KeyForAction[RT_ACCELERATE]}" Style="{StaticResource RowKeyStyle}" />
+                </StackPanel>
+
+                <StackPanel Canvas.Left="672" Canvas.Top="94" Orientation="Horizontal">
+                    <TextBlock Text="RB" Style="{StaticResource RowNameStyle}" />
+                    <TextBlock Text="{Binding KeyForAction[RB_SHIFT_UP]}" Style="{StaticResource RowKeyStyle}" />
+                </StackPanel>
+
+                <StackPanel Canvas.Left="646" Canvas.Top="140">
+                    <TextBlock Text="FACE BUTTONS" Foreground="#6E7681" FontSize="10" Margin="0,0,0,4" />
+                    <StackPanel Orientation="Horizontal">
+                        <TextBlock Text="A" Style="{StaticResource RowNameStyle}" />
+                        <TextBlock Text="{Binding KeyForAction[A_HANDBRAKE]}" Style="{StaticResource RowKeyStyle}" />
+                    </StackPanel>
+                    <StackPanel Orientation="Horizontal">
+                        <TextBlock Text="B" Style="{StaticResource RowNameStyle}" />
+                        <TextBlock Text="{Binding KeyForAction[B_REARVIEW]}" Style="{StaticResource RowKeyStyle}" />
+                    </StackPanel>
+                    <StackPanel Orientation="Horizontal">
+                        <TextBlock Text="X" Style="{StaticResource RowNameStyle}" />
+                        <TextBlock Text="{Binding KeyForAction[X_RESET_RECOVERY]}" Style="{StaticResource RowKeyStyle}" />
+                    </StackPanel>
+                    <StackPanel Orientation="Horizontal">
+                        <TextBlock Text="Y" Style="{StaticResource RowNameStyle}" />
+                        <TextBlock Text="{Binding KeyForAction[Y_CAMERA_CYCLE]}" Style="{StaticResource RowKeyStyle}" />
+                    </StackPanel>
+                </StackPanel>
+
+                <StackPanel Canvas.Left="646" Canvas.Top="278">
+                    <TextBlock Text="RIGHT STICK" Foreground="#6E7681" FontSize="10" Margin="0,0,0,4" />
+                    <StackPanel Orientation="Horizontal">
+                        <TextBlock Text="Left" Style="{StaticResource RowNameStyle}" />
+                        <TextBlock Text="{Binding KeyForAction[RS_LEFT]}" Style="{StaticResource RowKeyStyle}" />
+                    </StackPanel>
+                    <StackPanel Orientation="Horizontal">
+                        <TextBlock Text="Right" Style="{StaticResource RowNameStyle}" />
+                        <TextBlock Text="{Binding KeyForAction[RS_RIGHT]}" Style="{StaticResource RowKeyStyle}" />
+                    </StackPanel>
+                    <StackPanel Orientation="Horizontal">
+                        <TextBlock Text="Up" Style="{StaticResource RowNameStyle}" />
+                        <TextBlock Text="{Binding KeyForAction[RS_UP]}" Style="{StaticResource RowKeyStyle}" />
+                    </StackPanel>
+                    <StackPanel Orientation="Horizontal">
+                        <TextBlock Text="Down" Style="{StaticResource RowNameStyle}" />
+                        <TextBlock Text="{Binding KeyForAction[RS_DOWN]}" Style="{StaticResource RowKeyStyle}" />
+                    </StackPanel>
+                    <StackPanel Orientation="Horizontal">
+                        <TextBlock Text="R3 (click)" Style="{StaticResource RowNameStyle}" />
+                        <TextBlock Text="{Binding KeyForAction[R3]}" Style="{StaticResource RowKeyStyle}" />
+                    </StackPanel>
+                </StackPanel>
+
+            </Canvas>
+        </Viewbox>
+    </DockPanel>
+</UserControl>

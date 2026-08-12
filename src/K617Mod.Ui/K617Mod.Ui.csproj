@@ -14,12 +14,12 @@
     <RootNamespace>K617Mod.Ui</RootNamespace>
   </PropertyGroup>
 
-  <!-- Deliberately NO ProjectReference to K617Mod.Core yet.
-       This first step exists to prove the .NET 8 SDK and WPF build on
-       this machine, nothing else. If it fails, the cause is the
-       toolchain. If it were referencing Core, a NuGet restore failure
-       on the ViGEm/HidSharp package pins would look identical to a
-       broken WPF setup, and the two would be hard to tell apart.
-       Core gets wired in once this window opens. -->
+  <ItemGroup>
+    <!-- Wired in now that the empty window is confirmed building. The
+         remap page reads the default profile through Core's own
+         ProfileDocument type rather than re-declaring the JSON shape
+         here - one definition of the format, not two. -->
+    <ProjectReference Include="..\K617Mod.Core\K617Mod.Core.csproj" />
+  </ItemGroup>
 
 </Project>
