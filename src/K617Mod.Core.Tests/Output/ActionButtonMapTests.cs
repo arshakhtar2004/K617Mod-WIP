@@ -1,3 +1,4 @@
+using K617Mod.Core.Mapping;
 using K617Mod.Core.Output;
 using K617Mod.Core.State;
 using Xunit;
@@ -6,17 +7,20 @@ namespace K617Mod.Core.Tests.Output;
 
 public class ActionButtonMapTests
 {
-    // Every DIGITAL action name that exists in keymapping.default.json -
-    // if this list and the real JSON's digital actions ever drift apart,
-    // that's a real bug worth catching, which is exactly what
-    // AllDigitalActionsFromDefaultMapping_HaveAButton (below) is for.
+    // Derived from XboxControls rather than written out by hand.
+    //
+    // This list used to be a hardcoded 13 names, and it went stale the
+    // moment R3 and Guide were added - the test failed on a count, which
+    // says nothing about what actually went wrong. Deriving it means the
+    // test now states the real rule: every digital control the pad
+    // exposes must have a button behind it, or binding a key to it does
+    // nothing. Add a control to XboxControls without wiring a button and
+    // this fails immediately, naming the culprit.
     private static readonly string[] ExpectedActions =
-    {
-        "LB_SHIFT_DOWN", "RB_SHIFT_UP",
-        "A_HANDBRAKE", "B_REARVIEW", "X_RESET_RECOVERY", "Y_CAMERA_CYCLE",
-        "DPAD_UP", "DPAD_DOWN", "DPAD_LEFT", "DPAD_RIGHT",
-        "L3_HORN", "VIEW_SCOREBOARD", "MENU_PAUSE",
-    };
+        XboxControls.All
+            .Where(control => control.Kind == InputType.Digital)
+            .Select(control => control.ActionId)
+            .ToArray();
 
     [Fact]
     public void EveryExpectedAction_HasAMappedButton()
@@ -31,6 +35,19 @@ public class ActionButtonMapTests
     public void MappedActions_CountMatchesExpected()
     {
         Assert.Equal(ExpectedActions.Length, ActionButtonMap.MappedActions.Count);
+    }
+
+    [Fact]
+    public void EveryDigitalControlOnThePad_HasAButton()
+    {
+        var missing = XboxControls.All
+            .Where(control => control.Kind == InputType.Digital)
+            .Where(control => !ActionButtonMap.TryGetButton(control.ActionId, out _))
+            .Select(control => $"{control.DisplayName} ({control.ActionId})")
+            .ToList();
+
+        Assert.True(missing.Count == 0,
+            "These can be bound in the UI but would silently do nothing: " + string.Join(", ", missing));
     }
 
     [Fact]
