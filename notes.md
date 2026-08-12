@@ -21,6 +21,18 @@ Two repos under arshakhtar2004, both public:
   rewrite, this folder) pushed here, excluding `bin/`, `obj/`, and the
   backup zip via `.gitignore`. This is the live one.
 
+  Branches: `main` and `ui`, currently identical (`ui` was branched off
+  main once the config app had its first two working pages, 12 Aug).
+  Config app work continues on `ui`. A separate branch is planned for
+  making profile settings importable rather than hardcoded.
+
+  Note on pushing: the sandbox has no direct DNS or raw SSH, so pushes
+  route through a proxy via
+  `GIT_SSH_COMMAND="ssh -o ProxyCommand='socat - PROXY:localhost:%h:%p,proxyport=3128'"`.
+  Also clone with `-c core.fileMode=false`, otherwise copying off the
+  Windows folder flips permission bits on every file and every commit
+  shows ~75 spurious changes.
+
 ## What it is
 
 Turns Arsh's K617 hall-effect keyboard into a game controller with real
