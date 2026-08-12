@@ -21,8 +21,6 @@ public static class DefaultProfiles
     {
         Name = "Typing",
         Description = "Normal keyboard behavior - no controller mapping active.",
-        SteeringCurveExponent = 1.0,
-        ThrottleBrakeCurveExponent = 2.0,
         DigitalPressThreshold = 0.3,
         // KeyMapping left as an empty KeyMapDocument on purpose - nothing
         // bound to a controller action, so suppression/output should

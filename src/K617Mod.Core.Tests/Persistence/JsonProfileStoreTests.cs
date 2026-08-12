@@ -1,5 +1,6 @@
 using K617Mod.Core.Mapping;
 using K617Mod.Core.Persistence;
+using K617Mod.Core.State;
 using Xunit;
 
 namespace K617Mod.Core.Tests.Persistence;
@@ -43,8 +44,6 @@ public class JsonProfileStoreTests : IDisposable
         {
             Name = "TestProfile",
             Description = "A profile used only in tests.",
-            SteeringCurveExponent = 1.5,
-            ThrottleBrakeCurveExponent = 2.5,
             DigitalPressThreshold = 0.4,
         };
 
@@ -53,9 +52,27 @@ public class JsonProfileStoreTests : IDisposable
 
         Assert.Equal("TestProfile", loaded.Name);
         Assert.Equal("A profile used only in tests.", loaded.Description);
-        Assert.Equal(1.5, loaded.SteeringCurveExponent);
-        Assert.Equal(2.5, loaded.ThrottleBrakeCurveExponent);
         Assert.Equal(0.4, loaded.DigitalPressThreshold);
+    }
+
+    [Fact]
+    public void SaveThenLoad_RoundTripsResponseCurves()
+    {
+        var profile = new ProfileDocument { Name = "CurveProfile" };
+        profile.Curves[CurveAxes.RightTrigger] = new ResponseCurve(new[]
+        {
+            new CurvePoint(0.0, 0.0),
+            new CurvePoint(0.4, 0.0),   // deadzone: nothing until 40% depth
+            new CurvePoint(1.0, 1.0),
+        });
+
+        _store.SaveProfile(profile);
+        var loaded = _store.LoadProfile("CurveProfile");
+
+        var curve = loaded.Curves[CurveAxes.RightTrigger];
+        Assert.Equal(3, curve.Points.Count);
+        Assert.Equal(0.0, curve.Evaluate(0.2), 6);
+        Assert.Equal(0.5, curve.Evaluate(0.7), 6);
     }
 
     [Fact]

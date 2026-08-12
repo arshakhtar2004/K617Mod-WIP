@@ -10,7 +10,7 @@ namespace K617Mod.Ui;
 /// </summary>
 public partial class RemapPage : UserControl
 {
-    private readonly RemapViewModel _viewModel = new();
+    private readonly ProfileSession _session = ProfileSession.Current;
 
     /// <summary>Which control the open picker is about to rebind.</summary>
     private ControlBinding? _pickerTarget;
@@ -25,7 +25,7 @@ public partial class RemapPage : UserControl
     public RemapPage()
     {
         InitializeComponent();
-        DataContext = _viewModel;
+        DataContext = _session;
     }
 
     private void KeyButton_Click(object sender, RoutedEventArgs e)
@@ -51,13 +51,13 @@ public partial class RemapPage : UserControl
         if (_primingPicker || _pickerTarget is null) return;
         if (KeyList.SelectedItem is not string keyName) return;
 
-        _viewModel.Assign(_pickerTarget, keyName);
+        _session.Assign(_pickerTarget, keyName);
 
         KeyPicker.IsOpen = false;
         _pickerTarget = null;
     }
 
-    private void Apply_Click(object sender, RoutedEventArgs e) => _viewModel.Apply();
+    private void Apply_Click(object sender, RoutedEventArgs e) => _session.Apply();
 
-    private void Revert_Click(object sender, RoutedEventArgs e) => _viewModel.Revert();
+    private void Revert_Click(object sender, RoutedEventArgs e) => _session.Revert();
 }

@@ -79,8 +79,8 @@
                          GroupName="Settings"
                          IsChecked="True"
                          Style="{StaticResource NavItemStyle}" />
-            <RadioButton x:Name="NavB"
-                         Content="B"
+            <RadioButton x:Name="NavCurves"
+                         Content="Response Curves"
                          GroupName="Settings"
                          Style="{StaticResource NavItemStyle}" />
             <RadioButton x:Name="NavC"
@@ -100,11 +100,7 @@
             <Grid>
                 <local:RemapPage Visibility="{Binding IsChecked, ElementName=NavRemapKeys, Converter={StaticResource BoolToVis}}" />
 
-                <StackPanel Visibility="{Binding IsChecked, ElementName=NavB, Converter={StaticResource BoolToVis}}">
-                    <TextBlock Text="B" Style="{StaticResource PageHeadingStyle}" />
-                    <TextBlock Style="{StaticResource PlaceholderStyle}"
-                               Text="To be decided." />
-                </StackPanel>
+                <local:CurvePage Visibility="{Binding IsChecked, ElementName=NavCurves, Converter={StaticResource BoolToVis}}" />
 
                 <StackPanel Visibility="{Binding IsChecked, ElementName=NavC, Converter={StaticResource BoolToVis}}">
                     <TextBlock Text="C" Style="{StaticResource PageHeadingStyle}" />

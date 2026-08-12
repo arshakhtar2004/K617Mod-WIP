@@ -30,6 +30,13 @@
             <Setter Property="VerticalAlignment" Value="Center" />
         </Style>
 
+        <Style x:Key="RowNameNarrowStyle" TargetType="TextBlock">
+            <Setter Property="Foreground" Value="{StaticResource LabelName}" />
+            <Setter Property="FontSize" Value="12" />
+            <Setter Property="Width" Value="44" />
+            <Setter Property="VerticalAlignment" Value="Center" />
+        </Style>
+
         <Style x:Key="GroupHeaderStyle" TargetType="TextBlock">
             <Setter Property="Foreground" Value="#6E7681" />
             <Setter Property="FontSize" Value="10" />
@@ -233,29 +240,6 @@
                         <Ellipse Canvas.Left="327" Canvas.Top="131" Width="22" Height="22"
                                  Style="{StaticResource ControlShapeStyle}" />
 
-                        <StackPanel Canvas.Left="258" Canvas.Top="42" Orientation="Horizontal">
-                            <TextBlock Text="Guide " Style="{StaticResource InlineLabelStyle}" />
-                            <Button Style="{StaticResource KeyButtonStyle}"
-                                    Content="{Binding Bindings[GUIDE].KeyName}"
-                                    Tag="{Binding Bindings[GUIDE]}"
-                                    IsEnabled="{Binding IsEditable}" Click="KeyButton_Click" />
-                        </StackPanel>
-
-                        <StackPanel Canvas.Left="188" Canvas.Top="158" Orientation="Horizontal">
-                            <TextBlock Text="View " Style="{StaticResource InlineLabelStyle}" />
-                            <Button Style="{StaticResource KeyButtonStyle}"
-                                    Content="{Binding Bindings[VIEW_SCOREBOARD].KeyName}"
-                                    Tag="{Binding Bindings[VIEW_SCOREBOARD]}"
-                                    IsEnabled="{Binding IsEditable}" Click="KeyButton_Click" />
-                        </StackPanel>
-
-                        <StackPanel Canvas.Left="318" Canvas.Top="158" Orientation="Horizontal">
-                            <TextBlock Text="Menu " Style="{StaticResource InlineLabelStyle}" />
-                            <Button Style="{StaticResource KeyButtonStyle}"
-                                    Content="{Binding Bindings[MENU_PAUSE].KeyName}"
-                                    Tag="{Binding Bindings[MENU_PAUSE]}"
-                                    IsEnabled="{Binding IsEditable}" Click="KeyButton_Click" />
-                        </StackPanel>
                     </Canvas>
 
                     <!-- ================= LEADER LINES ================= -->
@@ -268,6 +252,17 @@
                     <Line X1="748" Y1="114" X2="638" Y2="105" Style="{StaticResource LeaderStyle}" />
                     <Line X1="748" Y1="197" X2="652" Y2="203" Style="{StaticResource LeaderStyle}" />
                     <Line X1="748" Y1="353" X2="562" Y2="296" Style="{StaticResource LeaderStyle}" />
+
+                    <!-- View / Menu / Guide sit in the middle of the pad,
+                         so these three leaders run up through the gap
+                         between the grips and across the body. Crossing
+                         the subject is normal for a callout diagram, and
+                         is the price of having every control labelled
+                         the same way rather than three of them being
+                         special. -->
+                    <Line X1="332" Y1="474" X2="410" Y2="208" Style="{StaticResource LeaderStyle}" />
+                    <Line X1="452" Y1="512" X2="450" Y2="174" Style="{StaticResource LeaderStyle}" />
+                    <Line X1="566" Y1="474" X2="492" Y2="208" Style="{StaticResource LeaderStyle}" />
 
                     <!-- ================= LEFT CALLOUTS ================= -->
                     <StackPanel Canvas.Left="12" Canvas.Top="62" Orientation="Horizontal">
@@ -443,6 +438,31 @@
                                     Tag="{Binding Bindings[R3]}"
                                     IsEnabled="{Binding IsEditable}" Click="KeyButton_Click" />
                         </StackPanel>
+                    </StackPanel>
+
+                    <!-- ================= SYSTEM CALLOUTS ================= -->
+                    <StackPanel Canvas.Left="286" Canvas.Top="474" Orientation="Horizontal">
+                        <TextBlock Text="View" Style="{StaticResource RowNameNarrowStyle}" />
+                        <Button Style="{StaticResource KeyButtonStyle}"
+                                Content="{Binding Bindings[VIEW_SCOREBOARD].KeyName}"
+                                Tag="{Binding Bindings[VIEW_SCOREBOARD]}"
+                                IsEnabled="{Binding IsEditable}" Click="KeyButton_Click" />
+                    </StackPanel>
+
+                    <StackPanel Canvas.Left="406" Canvas.Top="512" Orientation="Horizontal">
+                        <TextBlock Text="Guide" Style="{StaticResource RowNameNarrowStyle}" />
+                        <Button Style="{StaticResource KeyButtonStyle}"
+                                Content="{Binding Bindings[GUIDE].KeyName}"
+                                Tag="{Binding Bindings[GUIDE]}"
+                                IsEnabled="{Binding IsEditable}" Click="KeyButton_Click" />
+                    </StackPanel>
+
+                    <StackPanel Canvas.Left="520" Canvas.Top="474" Orientation="Horizontal">
+                        <TextBlock Text="Menu" Style="{StaticResource RowNameNarrowStyle}" />
+                        <Button Style="{StaticResource KeyButtonStyle}"
+                                Content="{Binding Bindings[MENU_PAUSE].KeyName}"
+                                Tag="{Binding Bindings[MENU_PAUSE]}"
+                                IsEnabled="{Binding IsEditable}" Click="KeyButton_Click" />
                     </StackPanel>
 
                 </Canvas>

@@ -6,17 +6,16 @@ using System.Linq;
 using System.Runtime.CompilerServices;
 using K617Mod.Core.Mapping;
 using K617Mod.Core.Persistence;
+using K617Mod.Core.State;
 
 namespace K617Mod.Ui;
 
 /// <summary>
-/// One Xbox control and the physical key currently bound to it. Raises
-/// change notifications so reassigning a key updates the button on the
-/// diagram without the page rebuilding itself.
+/// One Xbox control and the physical key currently bound to it.
 /// </summary>
 public sealed class ControlBinding : INotifyPropertyChanged
 {
-    private string _keyName = RemapViewModel.Unassigned;
+    private string _keyName = ProfileSession.Unassigned;
 
     public ControlBinding(XboxControl control)
     {
@@ -44,18 +43,23 @@ public sealed class ControlBinding : INotifyPropertyChanged
 }
 
 /// <summary>
-/// Backs the remap page: which profile is selected, what each Xbox
-/// control is bound to in it, and which physical keys are available to
-/// bind.
+/// The single edit session shared by every settings page: which profile
+/// is selected, its key bindings, its response curves, and whether there
+/// are pending changes.
 ///
-/// Edits live only in memory. Nothing is written to the profile until
-/// Apply is pressed, which is what makes it safe to change several
-/// bindings and then commit them together - or walk away and lose
-/// nothing but the pending edits.
+/// Deliberately one shared instance rather than a view model per page.
+/// With separate instances the remap page could sit on "Profile 2" while
+/// the curve page sat on "Default", and Apply on one would silently
+/// overwrite pending edits from the other. Sharing the session means
+/// "the selected profile" is one fact, and Apply commits mapping and
+/// curves together in a single write.
 /// </summary>
-public sealed class RemapViewModel : INotifyPropertyChanged
+public sealed class ProfileSession : INotifyPropertyChanged
 {
     public const string Unassigned = "—";
+
+    /// <summary>The one instance every page binds to.</summary>
+    public static ProfileSession Current { get; } = new();
 
     private readonly IProfileStore _store;
     private string _selectedProfileName = ProfileBootstrapper.DefaultProfileName;
@@ -63,7 +67,7 @@ public sealed class RemapViewModel : INotifyPropertyChanged
     private bool _hasUnsavedChanges;
     private string _loadError = string.Empty;
 
-    public RemapViewModel()
+    private ProfileSession()
     {
         var appDataRoot = Path.Combine(
             Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "K617Mod");
@@ -72,8 +76,6 @@ public sealed class RemapViewModel : INotifyPropertyChanged
 
         _store = new JsonProfileStore(appDataRoot);
 
-        // Every control exists up front, unmapped ones holding a dash,
-        // so a binding on the diagram can never miss and render blank.
         Bindings = XboxControls.All.ToDictionary(
             control => control.ActionId,
             control => new ControlBinding(control),
@@ -96,10 +98,12 @@ public sealed class RemapViewModel : INotifyPropertyChanged
 
     public IReadOnlyList<string> ProfileNames { get; }
 
-    /// <summary>Action id -> current binding. Stable for the lifetime of the page.</summary>
+    /// <summary>Action id -> binding. Stable for the app's lifetime, so XAML bindings stay valid.</summary>
     public Dictionary<string, ControlBinding> Bindings { get; }
 
-    /// <summary>Physical keys this profile knows a HID position for, plus an unassign option.</summary>
+    /// <summary>Working copy of the profile's curves, keyed by CurveAxes id.</summary>
+    public Dictionary<string, ResponseCurve> Curves { get; private set; } = CurveAxes.Defaults();
+
     public ObservableCollection<string> AvailableKeys { get; } = new();
 
     public string SelectedProfileName
@@ -114,7 +118,6 @@ public sealed class RemapViewModel : INotifyPropertyChanged
         }
     }
 
-    /// <summary>False while the read-only Default profile is selected.</summary>
     public bool IsEditable
     {
         get => _isEditable;
@@ -139,15 +142,16 @@ public sealed class RemapViewModel : INotifyPropertyChanged
             ? "Unsaved changes."
             : "No pending changes.";
 
-    /// <summary>Points a control at a different key, or at nothing.</summary>
+    /// <summary>Raised after a profile is loaded, so open editors can re-read their values.</summary>
+    public event EventHandler? ProfileReloaded;
+
     public void Assign(ControlBinding target, string keyName)
     {
         if (!IsEditable || target.KeyName == keyName) return;
 
-        // A physical key can only drive one control, so binding a key
-        // that's already in use releases it from wherever it was. Doing
-        // this silently for now - surfacing the clash to the person is a
-        // later job.
+        // One physical key can only drive one control, so binding a key
+        // already in use releases it from wherever it was. Silent for
+        // now - telling the person about the clash is a later job.
         if (keyName != Unassigned)
         {
             foreach (var other in Bindings.Values.Where(b => b != target && b.KeyName == keyName))
@@ -160,7 +164,17 @@ public sealed class RemapViewModel : INotifyPropertyChanged
         HasUnsavedChanges = true;
     }
 
-    /// <summary>Writes pending edits into the selected profile.</summary>
+    public ResponseCurve GetCurve(string axisId) =>
+        Curves.TryGetValue(axisId, out var curve) ? curve : ResponseCurve.Linear();
+
+    public void SetCurve(string axisId, ResponseCurve curve)
+    {
+        if (!IsEditable) return;
+        Curves[axisId] = curve;
+        HasUnsavedChanges = true;
+    }
+
+    /// <summary>Writes mapping and curves into the selected profile in one save.</summary>
     public void Apply()
     {
         if (!IsEditable) return;
@@ -168,8 +182,8 @@ public sealed class RemapViewModel : INotifyPropertyChanged
         try
         {
             var profile = _store.LoadProfile(SelectedProfileName);
-            profile.KeyMapping.ControllerMap.Clear();
 
+            profile.KeyMapping.ControllerMap.Clear();
             foreach (var binding in Bindings.Values.Where(b => b.KeyName != Unassigned))
             {
                 profile.KeyMapping.ControllerMap[binding.KeyName] = new KeyBindingEntry
@@ -178,6 +192,11 @@ public sealed class RemapViewModel : INotifyPropertyChanged
                     Kind = binding.Kind == InputType.Analog ? "analog" : "digital",
                 };
             }
+
+            profile.Curves = Curves.ToDictionary(
+                pair => pair.Key,
+                pair => pair.Value.Clone(),
+                StringComparer.OrdinalIgnoreCase);
 
             _store.SaveProfile(profile);
             _store.SetLastActiveProfileName(SelectedProfileName);
@@ -190,7 +209,6 @@ public sealed class RemapViewModel : INotifyPropertyChanged
         }
     }
 
-    /// <summary>Throws away pending edits and re-reads the profile from disk.</summary>
     public void Revert() => LoadSelectedProfile();
 
     private void LoadSelectedProfile()
@@ -202,6 +220,7 @@ public sealed class RemapViewModel : INotifyPropertyChanged
 
         AvailableKeys.Clear();
         AvailableKeys.Add(Unassigned);
+        Curves = CurveAxes.Defaults();
 
         try
         {
@@ -214,16 +233,26 @@ public sealed class RemapViewModel : INotifyPropertyChanged
                 AvailableKeys.Add(keyName);
             }
 
-            // The profile stores key -> action because that's the
-            // direction the HID pipeline looks things up. The page needs
-            // action -> key, so invert it once here rather than searching
-            // the map for every control on screen.
+            // Stored key -> action because that's how the HID pipeline
+            // looks it up; the pages need action -> key, so invert once.
             foreach (var (keyName, entry) in profile.KeyMapping.ControllerMap)
             {
                 if (!string.IsNullOrWhiteSpace(entry.Action)
                     && Bindings.TryGetValue(entry.Action, out var binding))
                 {
                     binding.KeyName = keyName;
+                }
+            }
+
+            // Missing axes keep their default curve rather than failing,
+            // so a profile saved before an axis existed still loads.
+            if (profile.Curves is not null)
+            {
+                foreach (var (axisId, curve) in profile.Curves)
+                {
+                    if (curve is null) continue;
+                    curve.Normalize();
+                    Curves[axisId] = curve.Clone();
                 }
             }
 
@@ -235,6 +264,8 @@ public sealed class RemapViewModel : INotifyPropertyChanged
             IsEditable = false;
             LoadError = $"Could not load '{SelectedProfileName}': {ex.Message}";
         }
+
+        ProfileReloaded?.Invoke(this, EventArgs.Empty);
     }
 
     public event PropertyChangedEventHandler? PropertyChanged;

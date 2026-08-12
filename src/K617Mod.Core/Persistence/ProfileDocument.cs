@@ -1,4 +1,5 @@
 using K617Mod.Core.Mapping;
+using K617Mod.Core.State;
 
 namespace K617Mod.Core.Persistence;
 
@@ -26,8 +27,18 @@ public sealed class ProfileDocument
     /// </summary>
     public bool IsReadOnly { get; set; }
 
-    public double SteeringCurveExponent { get; set; } = 1.0;
-    public double ThrottleBrakeCurveExponent { get; set; } = 2.0;
+    /// <summary>
+    /// Response curve per axis, keyed by CurveAxes ids ("RT", "LS_X"…).
+    /// Replaced the old SteeringCurveExponent / ThrottleBrakeCurveExponent
+    /// pair: an exponent can only bow the line one way, where a point
+    /// list can also express deadzones and S-curves.
+    ///
+    /// A dictionary rather than six named properties so adding an axis
+    /// later is a data change, not a schema change. A profile missing an
+    /// entry falls back to the default for that axis rather than failing.
+    /// </summary>
+    public Dictionary<string, ResponseCurve> Curves { get; set; } = CurveAxes.Defaults();
+
     public double DigitalPressThreshold { get; set; } = 0.3;
 
     public KeyMapDocument KeyMapping { get; set; } = new();

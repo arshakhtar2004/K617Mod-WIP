@@ -1,0 +1,19 @@
+<UserControl x:Class="K617Mod.Ui.CurveEditor"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+
+    <Viewbox Stretch="Uniform" StretchDirection="DownOnly" HorizontalAlignment="Left">
+        <!-- Fixed logical size so every coordinate in the code-behind is
+             a plain number. WPF transforms mouse input through the
+             Viewbox for us, so GetPosition on this canvas still returns
+             these same logical coordinates however it's scaled. -->
+        <Canvas x:Name="Plot"
+                Width="470" Height="410"
+                Background="#1B1D20"
+                ClipToBounds="True"
+                MouseLeftButtonDown="Plot_MouseLeftButtonDown"
+                MouseMove="Plot_MouseMove"
+                MouseLeftButtonUp="Plot_MouseLeftButtonUp"
+                MouseLeave="Plot_MouseLeftButtonUp" />
+    </Viewbox>
+</UserControl>
