@@ -10,7 +10,6 @@
         <SolidColorBrush x:Key="ControlCap"   Color="#6B727B" />
         <SolidColorBrush x:Key="LeaderLine"   Color="#6E7681" />
         <SolidColorBrush x:Key="LabelName"    Color="#9DA5B4" />
-        <SolidColorBrush x:Key="LabelKey"     Color="#FFFFFF" />
 
         <Style x:Key="ControlShapeStyle" TargetType="Shape">
             <Setter Property="Fill" Value="{StaticResource ControlFill}" />
@@ -27,13 +26,8 @@
         <Style x:Key="RowNameStyle" TargetType="TextBlock">
             <Setter Property="Foreground" Value="{StaticResource LabelName}" />
             <Setter Property="FontSize" Value="12" />
-            <Setter Property="Width" Value="92" />
-        </Style>
-
-        <Style x:Key="RowKeyStyle" TargetType="TextBlock">
-            <Setter Property="Foreground" Value="{StaticResource LabelKey}" />
-            <Setter Property="FontSize" Value="12" />
-            <Setter Property="FontWeight" Value="SemiBold" />
+            <Setter Property="Width" Value="86" />
+            <Setter Property="VerticalAlignment" Value="Center" />
         </Style>
 
         <Style x:Key="GroupHeaderStyle" TargetType="TextBlock">
@@ -45,6 +39,7 @@
         <Style x:Key="InlineLabelStyle" TargetType="TextBlock">
             <Setter Property="Foreground" Value="{StaticResource LabelName}" />
             <Setter Property="FontSize" Value="11" />
+            <Setter Property="VerticalAlignment" Value="Center" />
         </Style>
 
         <Style x:Key="GlyphStyle" TargetType="TextBlock">
@@ -52,280 +47,428 @@
             <Setter Property="FontSize" Value="13" />
             <Setter Property="FontWeight" Value="Bold" />
         </Style>
+
+        <!-- The key itself is the control you click. Disabled outright
+             while a read-only profile is selected, so the page can't be
+             edited into a state it won't be allowed to save. -->
+        <Style x:Key="KeyButtonStyle" TargetType="Button">
+            <Setter Property="Foreground" Value="#FFFFFF" />
+            <Setter Property="FontSize" Value="12" />
+            <Setter Property="FontWeight" Value="SemiBold" />
+            <Setter Property="MinWidth" Value="48" />
+            <Setter Property="Padding" Value="8,2" />
+            <Setter Property="Margin" Value="0,1" />
+            <Setter Property="Cursor" Value="Hand" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border x:Name="Bd"
+                                Background="#3A3F46"
+                                BorderBrush="#575D66"
+                                BorderThickness="1"
+                                CornerRadius="3"
+                                Padding="{TemplateBinding Padding}">
+                            <ContentPresenter HorizontalAlignment="Left" VerticalAlignment="Center" />
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="Bd" Property="Background" Value="#094771" />
+                                <Setter TargetName="Bd" Property="BorderBrush" Value="#2F81C8" />
+                            </Trigger>
+                            <Trigger Property="IsEnabled" Value="False">
+                                <Setter TargetName="Bd" Property="Background" Value="Transparent" />
+                                <Setter TargetName="Bd" Property="BorderBrush" Value="#33373D" />
+                                <Setter Property="Foreground" Value="#8A9099" />
+                                <Setter Property="Cursor" Value="Arrow" />
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <Style x:Key="ActionButtonStyle" TargetType="Button">
+            <Setter Property="Foreground" Value="#FFFFFF" />
+            <Setter Property="FontSize" Value="12" />
+            <Setter Property="Padding" Value="14,5" />
+            <Setter Property="Margin" Value="8,0,0,0" />
+            <Setter Property="Cursor" Value="Hand" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border x:Name="Bd" Background="#0E639C" CornerRadius="3"
+                                Padding="{TemplateBinding Padding}">
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center" />
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="Bd" Property="Background" Value="#1177BB" />
+                            </Trigger>
+                            <Trigger Property="IsEnabled" Value="False">
+                                <Setter TargetName="Bd" Property="Background" Value="#2E3238" />
+                                <Setter Property="Foreground" Value="#7A8089" />
+                                <Setter Property="Cursor" Value="Arrow" />
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
     </UserControl.Resources>
 
     <DockPanel>
-        <TextBlock DockPanel.Dock="Top"
-                   Text="Remap Keys"
-                   Foreground="#FFFFFF"
-                   FontSize="20"
-                   Margin="0,0,0,4" />
+        <StackPanel DockPanel.Dock="Top">
+            <TextBlock Text="Remap Keys" Foreground="#FFFFFF" FontSize="20" Margin="0,0,0,4" />
+            <TextBlock Text="Click any key to bind that control to a different one. Changes are held until you press Apply."
+                       Foreground="#8A8A8A" FontSize="12" TextWrapping="Wrap" Margin="0,0,0,10" />
 
-        <TextBlock DockPanel.Dock="Top"
-                   Text="Each control shows the key currently bound to it in the Default profile. Read-only for now."
-                   Foreground="#8A8A8A"
-                   FontSize="12"
-                   TextWrapping="Wrap"
-                   Margin="0,0,0,8" />
+            <!-- Profile bar -->
+            <StackPanel Orientation="Horizontal" Margin="0,0,0,10">
+                <TextBlock Text="Profile" Foreground="#9DA5B4" FontSize="12"
+                           VerticalAlignment="Center" Margin="0,0,8,0" />
+                <ComboBox Width="150"
+                          ItemsSource="{Binding ProfileNames}"
+                          SelectedItem="{Binding SelectedProfileName, Mode=TwoWay}" />
 
-        <TextBlock DockPanel.Dock="Top"
-                   Text="{Binding LoadError}"
-                   Foreground="#E06C75"
-                   FontSize="12"
-                   TextWrapping="Wrap"
-                   Margin="0,0,0,8">
-            <TextBlock.Style>
-                <Style TargetType="TextBlock">
-                    <Setter Property="Visibility" Value="Visible" />
-                    <Style.Triggers>
-                        <DataTrigger Binding="{Binding LoadError}" Value="">
-                            <Setter Property="Visibility" Value="Collapsed" />
-                        </DataTrigger>
-                    </Style.Triggers>
-                </Style>
-            </TextBlock.Style>
-        </TextBlock>
+                <TextBlock Text="{Binding StatusNote}" Foreground="#8A8A8A" FontSize="12"
+                           VerticalAlignment="Center" Margin="14,0,0,0" />
 
-        <Viewbox Stretch="Uniform" HorizontalAlignment="Center" VerticalAlignment="Top">
-            <Canvas Width="900" Height="560">
+                <Button Content="Apply" Style="{StaticResource ActionButtonStyle}"
+                        IsEnabled="{Binding HasUnsavedChanges}" Click="Apply_Click" />
+                <Button Content="Revert" Style="{StaticResource ActionButtonStyle}"
+                        IsEnabled="{Binding HasUnsavedChanges}" Click="Revert_Click" />
+            </StackPanel>
 
-                <!-- ================= CONTROLLER =================
-                     Nested canvas so the controller can be authored in
-                     its own 0,0-based coordinate space and positioned
-                     as a unit. Leader lines in the outer canvas use
-                     outer coordinates (local + 150,55). -->
-                <Canvas Canvas.Left="150" Canvas.Top="55" Width="600" Height="440">
+            <TextBlock Text="{Binding LoadError}" Foreground="#E06C75" FontSize="12"
+                       TextWrapping="Wrap" Margin="0,0,0,8">
+                <TextBlock.Style>
+                    <Style TargetType="TextBlock">
+                        <Setter Property="Visibility" Value="Visible" />
+                        <Style.Triggers>
+                            <DataTrigger Binding="{Binding LoadError}" Value="">
+                                <Setter Property="Visibility" Value="Collapsed" />
+                            </DataTrigger>
+                        </Style.Triggers>
+                    </Style>
+                </TextBlock.Style>
+            </TextBlock>
+        </StackPanel>
 
-                    <!-- Triggers, furthest back -->
-                    <Rectangle Canvas.Left="112" Canvas.Top="6" Width="70" Height="34"
-                               RadiusX="16" RadiusY="16" Style="{StaticResource ControlShapeStyle}" />
-                    <Rectangle Canvas.Left="418" Canvas.Top="6" Width="70" Height="34"
-                               RadiusX="16" RadiusY="16" Style="{StaticResource ControlShapeStyle}" />
+        <Grid>
+            <Viewbox Stretch="Uniform" HorizontalAlignment="Center" VerticalAlignment="Top">
+                <Canvas Width="900" Height="560">
 
-                    <!-- Bumpers, tucked behind the body's top edge -->
-                    <Rectangle Canvas.Left="104" Canvas.Top="30" Width="92" Height="30"
-                               RadiusX="14" RadiusY="14" Style="{StaticResource ControlShapeStyle}" />
-                    <Rectangle Canvas.Left="404" Canvas.Top="30" Width="92" Height="30"
-                               RadiusX="14" RadiusY="14" Style="{StaticResource ControlShapeStyle}" />
+                    <!-- ================= CONTROLLER ================= -->
+                    <Canvas Canvas.Left="150" Canvas.Top="55" Width="600" Height="440">
 
-                    <!-- Body. Traced with cubic beziers rather than
-                         assembled from rectangles: the flared shoulders,
-                         the dip along the top edge and the tapering
-                         grips are what make the shape read as a
-                         controller, and none of those are expressible
-                         with rounded rectangles. -->
-                    <Path Fill="{StaticResource BodyFill}"
-                          Stroke="{StaticResource BodyStroke}"
-                          StrokeThickness="2"
-                          Data="M 300,58
-                                C 340,52 380,44 424,44
-                                C 470,44 508,58 528,86
-                                C 548,114 556,150 560,190
-                                C 566,238 570,286 556,330
-                                C 544,368 516,392 486,392
-                                C 456,392 434,372 420,338
-                                C 408,308 396,286 372,272
-                                C 350,260 324,256 300,256
-                                C 276,256 250,260 228,272
-                                C 204,286 192,308 180,338
-                                C 166,372 144,392 114,392
-                                C 84,392 56,368 44,330
-                                C 30,286 34,238 40,190
-                                C 44,150 52,114 72,86
-                                C 92,58 130,44 176,44
-                                C 220,44 260,52 300,58 Z" />
+                        <Rectangle Canvas.Left="112" Canvas.Top="6" Width="70" Height="34"
+                                   RadiusX="16" RadiusY="16" Style="{StaticResource ControlShapeStyle}" />
+                        <Rectangle Canvas.Left="418" Canvas.Top="6" Width="70" Height="34"
+                                   RadiusX="16" RadiusY="16" Style="{StaticResource ControlShapeStyle}" />
 
-                    <!-- Left stick, centre (152,148) -->
-                    <Ellipse Canvas.Left="112" Canvas.Top="108" Width="80" Height="80"
-                             Fill="{StaticResource RecessFill}" Stroke="#5A6068" StrokeThickness="1" />
-                    <Ellipse Canvas.Left="120" Canvas.Top="116" Width="64" Height="64"
-                             Style="{StaticResource ControlShapeStyle}" />
-                    <Ellipse Canvas.Left="130" Canvas.Top="126" Width="44" Height="44"
-                             Fill="{StaticResource ControlCap}" Stroke="#8F969F" StrokeThickness="1" />
+                        <Rectangle Canvas.Left="104" Canvas.Top="30" Width="92" Height="30"
+                                   RadiusX="14" RadiusY="14" Style="{StaticResource ControlShapeStyle}" />
+                        <Rectangle Canvas.Left="404" Canvas.Top="30" Width="92" Height="30"
+                                   RadiusX="14" RadiusY="14" Style="{StaticResource ControlShapeStyle}" />
 
-                    <!-- Right stick, centre (368,238) -->
-                    <Ellipse Canvas.Left="328" Canvas.Top="198" Width="80" Height="80"
-                             Fill="{StaticResource RecessFill}" Stroke="#5A6068" StrokeThickness="1" />
-                    <Ellipse Canvas.Left="336" Canvas.Top="206" Width="64" Height="64"
-                             Style="{StaticResource ControlShapeStyle}" />
-                    <Ellipse Canvas.Left="346" Canvas.Top="216" Width="44" Height="44"
-                             Fill="{StaticResource ControlCap}" Stroke="#8F969F" StrokeThickness="1" />
+                        <Path Fill="{StaticResource BodyFill}"
+                              Stroke="{StaticResource BodyStroke}"
+                              StrokeThickness="2"
+                              Data="M 300,58
+                                    C 340,52 380,44 424,44
+                                    C 470,44 508,58 528,86
+                                    C 548,114 556,150 560,190
+                                    C 566,238 570,286 556,330
+                                    C 544,368 516,392 486,392
+                                    C 456,392 434,372 420,338
+                                    C 408,308 396,286 372,272
+                                    C 350,260 324,256 300,256
+                                    C 276,256 250,260 228,272
+                                    C 204,286 192,308 180,338
+                                    C 166,372 144,392 114,392
+                                    C 84,392 56,368 44,330
+                                    C 30,286 34,238 40,190
+                                    C 44,150 52,114 72,86
+                                    C 92,58 130,44 176,44
+                                    C 220,44 260,52 300,58 Z" />
 
-                    <!-- D-Pad, centre (212,240) -->
-                    <Ellipse Canvas.Left="164" Canvas.Top="192" Width="96" Height="96"
-                             Fill="{StaticResource RecessFill}" Stroke="#5A6068" StrokeThickness="1" />
-                    <Path Style="{StaticResource ControlShapeStyle}"
-                          Data="M 201,210 L 223,210 L 223,229 L 242,229 L 242,251
-                                L 223,251 L 223,270 L 201,270 L 201,251 L 182,251
-                                L 182,229 L 201,229 Z" />
+                        <Ellipse Canvas.Left="112" Canvas.Top="108" Width="80" Height="80"
+                                 Fill="{StaticResource RecessFill}" Stroke="#5A6068" StrokeThickness="1" />
+                        <Ellipse Canvas.Left="120" Canvas.Top="116" Width="64" Height="64"
+                                 Style="{StaticResource ControlShapeStyle}" />
+                        <Ellipse Canvas.Left="130" Canvas.Top="126" Width="44" Height="44"
+                                 Fill="{StaticResource ControlCap}" Stroke="#8F969F" StrokeThickness="1" />
 
-                    <!-- Face buttons, cluster centre (452,148) -->
-                    <Ellipse Canvas.Left="435" Canvas.Top="101" Width="34" Height="34"
-                             Style="{StaticResource ControlShapeStyle}" />
-                    <TextBlock Canvas.Left="447" Canvas.Top="109" Text="Y" Style="{StaticResource GlyphStyle}" />
+                        <Ellipse Canvas.Left="328" Canvas.Top="198" Width="80" Height="80"
+                                 Fill="{StaticResource RecessFill}" Stroke="#5A6068" StrokeThickness="1" />
+                        <Ellipse Canvas.Left="336" Canvas.Top="206" Width="64" Height="64"
+                                 Style="{StaticResource ControlShapeStyle}" />
+                        <Ellipse Canvas.Left="346" Canvas.Top="216" Width="44" Height="44"
+                                 Fill="{StaticResource ControlCap}" Stroke="#8F969F" StrokeThickness="1" />
 
-                    <Ellipse Canvas.Left="435" Canvas.Top="161" Width="34" Height="34"
-                             Style="{StaticResource ControlShapeStyle}" />
-                    <TextBlock Canvas.Left="447" Canvas.Top="169" Text="A" Style="{StaticResource GlyphStyle}" />
+                        <Ellipse Canvas.Left="164" Canvas.Top="192" Width="96" Height="96"
+                                 Fill="{StaticResource RecessFill}" Stroke="#5A6068" StrokeThickness="1" />
+                        <Path Style="{StaticResource ControlShapeStyle}"
+                              Data="M 201,210 L 223,210 L 223,229 L 242,229 L 242,251
+                                    L 223,251 L 223,270 L 201,270 L 201,251 L 182,251
+                                    L 182,229 L 201,229 Z" />
 
-                    <Ellipse Canvas.Left="405" Canvas.Top="131" Width="34" Height="34"
-                             Style="{StaticResource ControlShapeStyle}" />
-                    <TextBlock Canvas.Left="417" Canvas.Top="139" Text="X" Style="{StaticResource GlyphStyle}" />
+                        <Ellipse Canvas.Left="435" Canvas.Top="101" Width="34" Height="34"
+                                 Style="{StaticResource ControlShapeStyle}" />
+                        <TextBlock Canvas.Left="447" Canvas.Top="109" Text="Y" Style="{StaticResource GlyphStyle}" />
+                        <Ellipse Canvas.Left="435" Canvas.Top="161" Width="34" Height="34"
+                                 Style="{StaticResource ControlShapeStyle}" />
+                        <TextBlock Canvas.Left="447" Canvas.Top="169" Text="A" Style="{StaticResource GlyphStyle}" />
+                        <Ellipse Canvas.Left="405" Canvas.Top="131" Width="34" Height="34"
+                                 Style="{StaticResource ControlShapeStyle}" />
+                        <TextBlock Canvas.Left="417" Canvas.Top="139" Text="X" Style="{StaticResource GlyphStyle}" />
+                        <Ellipse Canvas.Left="465" Canvas.Top="131" Width="34" Height="34"
+                                 Style="{StaticResource ControlShapeStyle}" />
+                        <TextBlock Canvas.Left="477" Canvas.Top="139" Text="B" Style="{StaticResource GlyphStyle}" />
 
-                    <Ellipse Canvas.Left="465" Canvas.Top="131" Width="34" Height="34"
-                             Style="{StaticResource ControlShapeStyle}" />
-                    <TextBlock Canvas.Left="477" Canvas.Top="139" Text="B" Style="{StaticResource GlyphStyle}" />
+                        <Ellipse Canvas.Left="282" Canvas.Top="82" Width="36" Height="36"
+                                 Style="{StaticResource ControlShapeStyle}" />
+                        <Ellipse Canvas.Left="251" Canvas.Top="131" Width="22" Height="22"
+                                 Style="{StaticResource ControlShapeStyle}" />
+                        <Ellipse Canvas.Left="327" Canvas.Top="131" Width="22" Height="22"
+                                 Style="{StaticResource ControlShapeStyle}" />
 
-                    <!-- Guide, centre (300,100) -->
-                    <Ellipse Canvas.Left="282" Canvas.Top="82" Width="36" Height="36"
-                             Style="{StaticResource ControlShapeStyle}" />
+                        <StackPanel Canvas.Left="258" Canvas.Top="42" Orientation="Horizontal">
+                            <TextBlock Text="Guide " Style="{StaticResource InlineLabelStyle}" />
+                            <Button Style="{StaticResource KeyButtonStyle}"
+                                    Content="{Binding Bindings[GUIDE].KeyName}"
+                                    Tag="{Binding Bindings[GUIDE]}"
+                                    IsEnabled="{Binding IsEditable}" Click="KeyButton_Click" />
+                        </StackPanel>
 
-                    <!-- View (262,142) and Menu (338,142) -->
-                    <Ellipse Canvas.Left="251" Canvas.Top="131" Width="22" Height="22"
-                             Style="{StaticResource ControlShapeStyle}" />
-                    <Ellipse Canvas.Left="327" Canvas.Top="131" Width="22" Height="22"
-                             Style="{StaticResource ControlShapeStyle}" />
+                        <StackPanel Canvas.Left="188" Canvas.Top="158" Orientation="Horizontal">
+                            <TextBlock Text="View " Style="{StaticResource InlineLabelStyle}" />
+                            <Button Style="{StaticResource KeyButtonStyle}"
+                                    Content="{Binding Bindings[VIEW_SCOREBOARD].KeyName}"
+                                    Tag="{Binding Bindings[VIEW_SCOREBOARD]}"
+                                    IsEnabled="{Binding IsEditable}" Click="KeyButton_Click" />
+                        </StackPanel>
 
-                    <!-- Centre controls get inline labels: a leader line
-                         from either edge would cross the whole pad. -->
-                    <StackPanel Canvas.Left="266" Canvas.Top="48" Orientation="Horizontal">
-                        <TextBlock Text="Guide " Style="{StaticResource InlineLabelStyle}" />
-                        <TextBlock Text="{Binding KeyForAction[GUIDE]}" Style="{StaticResource RowKeyStyle}" />
+                        <StackPanel Canvas.Left="318" Canvas.Top="158" Orientation="Horizontal">
+                            <TextBlock Text="Menu " Style="{StaticResource InlineLabelStyle}" />
+                            <Button Style="{StaticResource KeyButtonStyle}"
+                                    Content="{Binding Bindings[MENU_PAUSE].KeyName}"
+                                    Tag="{Binding Bindings[MENU_PAUSE]}"
+                                    IsEnabled="{Binding IsEditable}" Click="KeyButton_Click" />
+                        </StackPanel>
+                    </Canvas>
+
+                    <!-- ================= LEADER LINES ================= -->
+                    <Line X1="152" Y1="74"  X2="270" Y2="78"  Style="{StaticResource LeaderStyle}" />
+                    <Line X1="152" Y1="114" X2="262" Y2="105" Style="{StaticResource LeaderStyle}" />
+                    <Line X1="152" Y1="205" X2="260" Y2="203" Style="{StaticResource LeaderStyle}" />
+                    <Line X1="152" Y1="345" X2="320" Y2="300" Style="{StaticResource LeaderStyle}" />
+
+                    <Line X1="748" Y1="74"  X2="630" Y2="78"  Style="{StaticResource LeaderStyle}" />
+                    <Line X1="748" Y1="114" X2="638" Y2="105" Style="{StaticResource LeaderStyle}" />
+                    <Line X1="748" Y1="197" X2="652" Y2="203" Style="{StaticResource LeaderStyle}" />
+                    <Line X1="748" Y1="353" X2="562" Y2="296" Style="{StaticResource LeaderStyle}" />
+
+                    <!-- ================= LEFT CALLOUTS ================= -->
+                    <StackPanel Canvas.Left="12" Canvas.Top="62" Orientation="Horizontal">
+                        <TextBlock Text="LT" Style="{StaticResource RowNameStyle}" />
+                        <Button Style="{StaticResource KeyButtonStyle}"
+                                Content="{Binding Bindings[LT_BRAKE].KeyName}"
+                                Tag="{Binding Bindings[LT_BRAKE]}"
+                                IsEnabled="{Binding IsEditable}" Click="KeyButton_Click" />
                     </StackPanel>
 
-                    <StackPanel Canvas.Left="212" Canvas.Top="158" Orientation="Horizontal">
-                        <TextBlock Text="View " Style="{StaticResource InlineLabelStyle}" />
-                        <TextBlock Text="{Binding KeyForAction[VIEW_SCOREBOARD]}" Style="{StaticResource RowKeyStyle}" />
+                    <StackPanel Canvas.Left="12" Canvas.Top="102" Orientation="Horizontal">
+                        <TextBlock Text="LB" Style="{StaticResource RowNameStyle}" />
+                        <Button Style="{StaticResource KeyButtonStyle}"
+                                Content="{Binding Bindings[LB_SHIFT_DOWN].KeyName}"
+                                Tag="{Binding Bindings[LB_SHIFT_DOWN]}"
+                                IsEnabled="{Binding IsEditable}" Click="KeyButton_Click" />
                     </StackPanel>
 
-                    <StackPanel Canvas.Left="324" Canvas.Top="158" Orientation="Horizontal">
-                        <TextBlock Text="Menu " Style="{StaticResource InlineLabelStyle}" />
-                        <TextBlock Text="{Binding KeyForAction[MENU_PAUSE]}" Style="{StaticResource RowKeyStyle}" />
+                    <StackPanel Canvas.Left="12" Canvas.Top="150">
+                        <TextBlock Text="LEFT STICK" Style="{StaticResource GroupHeaderStyle}" />
+                        <StackPanel Orientation="Horizontal">
+                            <TextBlock Text="Left" Style="{StaticResource RowNameStyle}" />
+                            <Button Style="{StaticResource KeyButtonStyle}"
+                                    Content="{Binding Bindings[STEER_LEFT].KeyName}"
+                                    Tag="{Binding Bindings[STEER_LEFT]}"
+                                    IsEnabled="{Binding IsEditable}" Click="KeyButton_Click" />
+                        </StackPanel>
+                        <StackPanel Orientation="Horizontal">
+                            <TextBlock Text="Right" Style="{StaticResource RowNameStyle}" />
+                            <Button Style="{StaticResource KeyButtonStyle}"
+                                    Content="{Binding Bindings[STEER_RIGHT].KeyName}"
+                                    Tag="{Binding Bindings[STEER_RIGHT]}"
+                                    IsEnabled="{Binding IsEditable}" Click="KeyButton_Click" />
+                        </StackPanel>
+                        <StackPanel Orientation="Horizontal">
+                            <TextBlock Text="Up" Style="{StaticResource RowNameStyle}" />
+                            <Button Style="{StaticResource KeyButtonStyle}"
+                                    Content="{Binding Bindings[LS_UP].KeyName}"
+                                    Tag="{Binding Bindings[LS_UP]}"
+                                    IsEnabled="{Binding IsEditable}" Click="KeyButton_Click" />
+                        </StackPanel>
+                        <StackPanel Orientation="Horizontal">
+                            <TextBlock Text="Down" Style="{StaticResource RowNameStyle}" />
+                            <Button Style="{StaticResource KeyButtonStyle}"
+                                    Content="{Binding Bindings[LS_DOWN].KeyName}"
+                                    Tag="{Binding Bindings[LS_DOWN]}"
+                                    IsEnabled="{Binding IsEditable}" Click="KeyButton_Click" />
+                        </StackPanel>
+                        <StackPanel Orientation="Horizontal">
+                            <TextBlock Text="L3 (click)" Style="{StaticResource RowNameStyle}" />
+                            <Button Style="{StaticResource KeyButtonStyle}"
+                                    Content="{Binding Bindings[L3_HORN].KeyName}"
+                                    Tag="{Binding Bindings[L3_HORN]}"
+                                    IsEnabled="{Binding IsEditable}" Click="KeyButton_Click" />
+                        </StackPanel>
                     </StackPanel>
+
+                    <StackPanel Canvas.Left="12" Canvas.Top="300">
+                        <TextBlock Text="D-PAD" Style="{StaticResource GroupHeaderStyle}" />
+                        <StackPanel Orientation="Horizontal">
+                            <TextBlock Text="Up" Style="{StaticResource RowNameStyle}" />
+                            <Button Style="{StaticResource KeyButtonStyle}"
+                                    Content="{Binding Bindings[DPAD_UP].KeyName}"
+                                    Tag="{Binding Bindings[DPAD_UP]}"
+                                    IsEnabled="{Binding IsEditable}" Click="KeyButton_Click" />
+                        </StackPanel>
+                        <StackPanel Orientation="Horizontal">
+                            <TextBlock Text="Down" Style="{StaticResource RowNameStyle}" />
+                            <Button Style="{StaticResource KeyButtonStyle}"
+                                    Content="{Binding Bindings[DPAD_DOWN].KeyName}"
+                                    Tag="{Binding Bindings[DPAD_DOWN]}"
+                                    IsEnabled="{Binding IsEditable}" Click="KeyButton_Click" />
+                        </StackPanel>
+                        <StackPanel Orientation="Horizontal">
+                            <TextBlock Text="Left" Style="{StaticResource RowNameStyle}" />
+                            <Button Style="{StaticResource KeyButtonStyle}"
+                                    Content="{Binding Bindings[DPAD_LEFT].KeyName}"
+                                    Tag="{Binding Bindings[DPAD_LEFT]}"
+                                    IsEnabled="{Binding IsEditable}" Click="KeyButton_Click" />
+                        </StackPanel>
+                        <StackPanel Orientation="Horizontal">
+                            <TextBlock Text="Right" Style="{StaticResource RowNameStyle}" />
+                            <Button Style="{StaticResource KeyButtonStyle}"
+                                    Content="{Binding Bindings[DPAD_RIGHT].KeyName}"
+                                    Tag="{Binding Bindings[DPAD_RIGHT]}"
+                                    IsEnabled="{Binding IsEditable}" Click="KeyButton_Click" />
+                        </StackPanel>
+                    </StackPanel>
+
+                    <!-- ================= RIGHT CALLOUTS ================= -->
+                    <StackPanel Canvas.Left="756" Canvas.Top="62" Orientation="Horizontal">
+                        <TextBlock Text="RT" Style="{StaticResource RowNameStyle}" />
+                        <Button Style="{StaticResource KeyButtonStyle}"
+                                Content="{Binding Bindings[RT_ACCELERATE].KeyName}"
+                                Tag="{Binding Bindings[RT_ACCELERATE]}"
+                                IsEnabled="{Binding IsEditable}" Click="KeyButton_Click" />
+                    </StackPanel>
+
+                    <StackPanel Canvas.Left="756" Canvas.Top="102" Orientation="Horizontal">
+                        <TextBlock Text="RB" Style="{StaticResource RowNameStyle}" />
+                        <Button Style="{StaticResource KeyButtonStyle}"
+                                Content="{Binding Bindings[RB_SHIFT_UP].KeyName}"
+                                Tag="{Binding Bindings[RB_SHIFT_UP]}"
+                                IsEnabled="{Binding IsEditable}" Click="KeyButton_Click" />
+                    </StackPanel>
+
+                    <StackPanel Canvas.Left="756" Canvas.Top="150">
+                        <TextBlock Text="FACE BUTTONS" Style="{StaticResource GroupHeaderStyle}" />
+                        <StackPanel Orientation="Horizontal">
+                            <TextBlock Text="A" Style="{StaticResource RowNameStyle}" />
+                            <Button Style="{StaticResource KeyButtonStyle}"
+                                    Content="{Binding Bindings[A_HANDBRAKE].KeyName}"
+                                    Tag="{Binding Bindings[A_HANDBRAKE]}"
+                                    IsEnabled="{Binding IsEditable}" Click="KeyButton_Click" />
+                        </StackPanel>
+                        <StackPanel Orientation="Horizontal">
+                            <TextBlock Text="B" Style="{StaticResource RowNameStyle}" />
+                            <Button Style="{StaticResource KeyButtonStyle}"
+                                    Content="{Binding Bindings[B_REARVIEW].KeyName}"
+                                    Tag="{Binding Bindings[B_REARVIEW]}"
+                                    IsEnabled="{Binding IsEditable}" Click="KeyButton_Click" />
+                        </StackPanel>
+                        <StackPanel Orientation="Horizontal">
+                            <TextBlock Text="X" Style="{StaticResource RowNameStyle}" />
+                            <Button Style="{StaticResource KeyButtonStyle}"
+                                    Content="{Binding Bindings[X_RESET_RECOVERY].KeyName}"
+                                    Tag="{Binding Bindings[X_RESET_RECOVERY]}"
+                                    IsEnabled="{Binding IsEditable}" Click="KeyButton_Click" />
+                        </StackPanel>
+                        <StackPanel Orientation="Horizontal">
+                            <TextBlock Text="Y" Style="{StaticResource RowNameStyle}" />
+                            <Button Style="{StaticResource KeyButtonStyle}"
+                                    Content="{Binding Bindings[Y_CAMERA_CYCLE].KeyName}"
+                                    Tag="{Binding Bindings[Y_CAMERA_CYCLE]}"
+                                    IsEnabled="{Binding IsEditable}" Click="KeyButton_Click" />
+                        </StackPanel>
+                    </StackPanel>
+
+                    <StackPanel Canvas.Left="756" Canvas.Top="300">
+                        <TextBlock Text="RIGHT STICK" Style="{StaticResource GroupHeaderStyle}" />
+                        <StackPanel Orientation="Horizontal">
+                            <TextBlock Text="Left" Style="{StaticResource RowNameStyle}" />
+                            <Button Style="{StaticResource KeyButtonStyle}"
+                                    Content="{Binding Bindings[RS_LEFT].KeyName}"
+                                    Tag="{Binding Bindings[RS_LEFT]}"
+                                    IsEnabled="{Binding IsEditable}" Click="KeyButton_Click" />
+                        </StackPanel>
+                        <StackPanel Orientation="Horizontal">
+                            <TextBlock Text="Right" Style="{StaticResource RowNameStyle}" />
+                            <Button Style="{StaticResource KeyButtonStyle}"
+                                    Content="{Binding Bindings[RS_RIGHT].KeyName}"
+                                    Tag="{Binding Bindings[RS_RIGHT]}"
+                                    IsEnabled="{Binding IsEditable}" Click="KeyButton_Click" />
+                        </StackPanel>
+                        <StackPanel Orientation="Horizontal">
+                            <TextBlock Text="Up" Style="{StaticResource RowNameStyle}" />
+                            <Button Style="{StaticResource KeyButtonStyle}"
+                                    Content="{Binding Bindings[RS_UP].KeyName}"
+                                    Tag="{Binding Bindings[RS_UP]}"
+                                    IsEnabled="{Binding IsEditable}" Click="KeyButton_Click" />
+                        </StackPanel>
+                        <StackPanel Orientation="Horizontal">
+                            <TextBlock Text="Down" Style="{StaticResource RowNameStyle}" />
+                            <Button Style="{StaticResource KeyButtonStyle}"
+                                    Content="{Binding Bindings[RS_DOWN].KeyName}"
+                                    Tag="{Binding Bindings[RS_DOWN]}"
+                                    IsEnabled="{Binding IsEditable}" Click="KeyButton_Click" />
+                        </StackPanel>
+                        <StackPanel Orientation="Horizontal">
+                            <TextBlock Text="R3 (click)" Style="{StaticResource RowNameStyle}" />
+                            <Button Style="{StaticResource KeyButtonStyle}"
+                                    Content="{Binding Bindings[R3].KeyName}"
+                                    Tag="{Binding Bindings[R3]}"
+                                    IsEnabled="{Binding IsEditable}" Click="KeyButton_Click" />
+                        </StackPanel>
+                    </StackPanel>
+
                 </Canvas>
+            </Viewbox>
 
-                <!-- ================= LEADER LINES ================= -->
-                <Line X1="148" Y1="72"  X2="270" Y2="78"  Style="{StaticResource LeaderStyle}" />
-                <Line X1="148" Y1="112" X2="262" Y2="105" Style="{StaticResource LeaderStyle}" />
-                <Line X1="148" Y1="197" X2="260" Y2="203" Style="{StaticResource LeaderStyle}" />
-                <Line X1="148" Y1="329" X2="320" Y2="300" Style="{StaticResource LeaderStyle}" />
-
-                <Line X1="752" Y1="72"  X2="630" Y2="78"  Style="{StaticResource LeaderStyle}" />
-                <Line X1="752" Y1="112" X2="638" Y2="105" Style="{StaticResource LeaderStyle}" />
-                <Line X1="752" Y1="189" X2="652" Y2="203" Style="{StaticResource LeaderStyle}" />
-                <Line X1="752" Y1="337" X2="562" Y2="296" Style="{StaticResource LeaderStyle}" />
-
-                <!-- ================= LEFT CALLOUTS ================= -->
-                <StackPanel Canvas.Left="15" Canvas.Top="64" Orientation="Horizontal">
-                    <TextBlock Text="LT" Style="{StaticResource RowNameStyle}" />
-                    <TextBlock Text="{Binding KeyForAction[LT_BRAKE]}" Style="{StaticResource RowKeyStyle}" />
-                </StackPanel>
-
-                <StackPanel Canvas.Left="15" Canvas.Top="104" Orientation="Horizontal">
-                    <TextBlock Text="LB" Style="{StaticResource RowNameStyle}" />
-                    <TextBlock Text="{Binding KeyForAction[LB_SHIFT_DOWN]}" Style="{StaticResource RowKeyStyle}" />
-                </StackPanel>
-
-                <StackPanel Canvas.Left="15" Canvas.Top="150">
-                    <TextBlock Text="LEFT STICK" Style="{StaticResource GroupHeaderStyle}" />
-                    <StackPanel Orientation="Horizontal">
-                        <TextBlock Text="Left" Style="{StaticResource RowNameStyle}" />
-                        <TextBlock Text="{Binding KeyForAction[STEER_LEFT]}" Style="{StaticResource RowKeyStyle}" />
+            <!-- Key picker. One shared popup rather than a dropdown per
+                 control - 25 always-live list controls would be a lot of
+                 objects for something only one of which is ever open. -->
+            <Popup x:Name="KeyPicker" StaysOpen="False" AllowsTransparency="True"
+                   Placement="Bottom" HorizontalOffset="0" VerticalOffset="2">
+                <Border Background="#252526" BorderBrush="#454A52" BorderThickness="1"
+                        CornerRadius="4" Padding="6">
+                    <StackPanel Width="170">
+                        <TextBlock x:Name="PickerHeader" Foreground="#9DA5B4" FontSize="11"
+                                   Margin="4,2,4,6" TextWrapping="Wrap" />
+                        <ListBox x:Name="KeyList"
+                                 MaxHeight="260"
+                                 Background="Transparent"
+                                 BorderThickness="0"
+                                 Foreground="#E6E6E6"
+                                 ItemsSource="{Binding AvailableKeys}"
+                                 SelectionChanged="KeyList_SelectionChanged"
+                                 ScrollViewer.VerticalScrollBarVisibility="Auto" />
                     </StackPanel>
-                    <StackPanel Orientation="Horizontal">
-                        <TextBlock Text="Right" Style="{StaticResource RowNameStyle}" />
-                        <TextBlock Text="{Binding KeyForAction[STEER_RIGHT]}" Style="{StaticResource RowKeyStyle}" />
-                    </StackPanel>
-                    <StackPanel Orientation="Horizontal">
-                        <TextBlock Text="Up" Style="{StaticResource RowNameStyle}" />
-                        <TextBlock Text="{Binding KeyForAction[LS_UP]}" Style="{StaticResource RowKeyStyle}" />
-                    </StackPanel>
-                    <StackPanel Orientation="Horizontal">
-                        <TextBlock Text="Down" Style="{StaticResource RowNameStyle}" />
-                        <TextBlock Text="{Binding KeyForAction[LS_DOWN]}" Style="{StaticResource RowKeyStyle}" />
-                    </StackPanel>
-                    <StackPanel Orientation="Horizontal">
-                        <TextBlock Text="L3 (click)" Style="{StaticResource RowNameStyle}" />
-                        <TextBlock Text="{Binding KeyForAction[L3_HORN]}" Style="{StaticResource RowKeyStyle}" />
-                    </StackPanel>
-                </StackPanel>
-
-                <StackPanel Canvas.Left="15" Canvas.Top="290">
-                    <TextBlock Text="D-PAD" Style="{StaticResource GroupHeaderStyle}" />
-                    <StackPanel Orientation="Horizontal">
-                        <TextBlock Text="Up" Style="{StaticResource RowNameStyle}" />
-                        <TextBlock Text="{Binding KeyForAction[DPAD_UP]}" Style="{StaticResource RowKeyStyle}" />
-                    </StackPanel>
-                    <StackPanel Orientation="Horizontal">
-                        <TextBlock Text="Down" Style="{StaticResource RowNameStyle}" />
-                        <TextBlock Text="{Binding KeyForAction[DPAD_DOWN]}" Style="{StaticResource RowKeyStyle}" />
-                    </StackPanel>
-                    <StackPanel Orientation="Horizontal">
-                        <TextBlock Text="Left" Style="{StaticResource RowNameStyle}" />
-                        <TextBlock Text="{Binding KeyForAction[DPAD_LEFT]}" Style="{StaticResource RowKeyStyle}" />
-                    </StackPanel>
-                    <StackPanel Orientation="Horizontal">
-                        <TextBlock Text="Right" Style="{StaticResource RowNameStyle}" />
-                        <TextBlock Text="{Binding KeyForAction[DPAD_RIGHT]}" Style="{StaticResource RowKeyStyle}" />
-                    </StackPanel>
-                </StackPanel>
-
-                <!-- ================= RIGHT CALLOUTS ================= -->
-                <StackPanel Canvas.Left="760" Canvas.Top="64" Orientation="Horizontal">
-                    <TextBlock Text="RT" Style="{StaticResource RowNameStyle}" />
-                    <TextBlock Text="{Binding KeyForAction[RT_ACCELERATE]}" Style="{StaticResource RowKeyStyle}" />
-                </StackPanel>
-
-                <StackPanel Canvas.Left="760" Canvas.Top="104" Orientation="Horizontal">
-                    <TextBlock Text="RB" Style="{StaticResource RowNameStyle}" />
-                    <TextBlock Text="{Binding KeyForAction[RB_SHIFT_UP]}" Style="{StaticResource RowKeyStyle}" />
-                </StackPanel>
-
-                <StackPanel Canvas.Left="760" Canvas.Top="150">
-                    <TextBlock Text="FACE BUTTONS" Style="{StaticResource GroupHeaderStyle}" />
-                    <StackPanel Orientation="Horizontal">
-                        <TextBlock Text="A" Style="{StaticResource RowNameStyle}" />
-                        <TextBlock Text="{Binding KeyForAction[A_HANDBRAKE]}" Style="{StaticResource RowKeyStyle}" />
-                    </StackPanel>
-                    <StackPanel Orientation="Horizontal">
-                        <TextBlock Text="B" Style="{StaticResource RowNameStyle}" />
-                        <TextBlock Text="{Binding KeyForAction[B_REARVIEW]}" Style="{StaticResource RowKeyStyle}" />
-                    </StackPanel>
-                    <StackPanel Orientation="Horizontal">
-                        <TextBlock Text="X" Style="{StaticResource RowNameStyle}" />
-                        <TextBlock Text="{Binding KeyForAction[X_RESET_RECOVERY]}" Style="{StaticResource RowKeyStyle}" />
-                    </StackPanel>
-                    <StackPanel Orientation="Horizontal">
-                        <TextBlock Text="Y" Style="{StaticResource RowNameStyle}" />
-                        <TextBlock Text="{Binding KeyForAction[Y_CAMERA_CYCLE]}" Style="{StaticResource RowKeyStyle}" />
-                    </StackPanel>
-                </StackPanel>
-
-                <StackPanel Canvas.Left="760" Canvas.Top="290">
-                    <TextBlock Text="RIGHT STICK" Style="{StaticResource GroupHeaderStyle}" />
-                    <StackPanel Orientation="Horizontal">
-                        <TextBlock Text="Left" Style="{StaticResource RowNameStyle}" />
-                        <TextBlock Text="{Binding KeyForAction[RS_LEFT]}" Style="{StaticResource RowKeyStyle}" />
-                    </StackPanel>
-                    <StackPanel Orientation="Horizontal">
-                        <TextBlock Text="Right" Style="{StaticResource RowNameStyle}" />
-                        <TextBlock Text="{Binding KeyForAction[RS_RIGHT]}" Style="{StaticResource RowKeyStyle}" />
-                    </StackPanel>
-                    <StackPanel Orientation="Horizontal">
-                        <TextBlock Text="Up" Style="{StaticResource RowNameStyle}" />
-                        <TextBlock Text="{Binding KeyForAction[RS_UP]}" Style="{StaticResource RowKeyStyle}" />
-                    </StackPanel>
-                    <StackPanel Orientation="Horizontal">
-                        <TextBlock Text="Down" Style="{StaticResource RowNameStyle}" />
-                        <TextBlock Text="{Binding KeyForAction[RS_DOWN]}" Style="{StaticResource RowKeyStyle}" />
-                    </StackPanel>
-                    <StackPanel Orientation="Horizontal">
-                        <TextBlock Text="R3 (click)" Style="{StaticResource RowNameStyle}" />
-                        <TextBlock Text="{Binding KeyForAction[R3]}" Style="{StaticResource RowKeyStyle}" />
-                    </StackPanel>
-                </StackPanel>
-
-            </Canvas>
-        </Viewbox>
+                </Border>
+            </Popup>
+        </Grid>
     </DockPanel>
 </UserControl>

@@ -11,10 +11,10 @@ Console.WriteLine("===================\n");
 // --- Where profiles live, and where the shipped default FH6 mapping comes from ---
 var appDataRoot = Path.Combine(
     Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "K617Mod");
-var defaultMappingPath = Path.Combine(AppContext.BaseDirectory, "Mapping", "Data", "keymapping.default.json");
+var defaultProfilePath = Path.Combine(AppContext.BaseDirectory, "Mapping", "Data", "profile.default.json");
 
 var profileStore = new JsonProfileStore(appDataRoot);
-var startupProfileName = ProfileBootstrapper.EnsureBootstrappedAndGetStartupProfileName(profileStore, defaultMappingPath);
+var startupProfileName = ProfileBootstrapper.EnsureBootstrappedAndGetStartupProfileName(profileStore, defaultProfilePath);
 
 Console.WriteLine($"Loading profile: {startupProfileName}");
 var profile = profileStore.LoadProfile(startupProfileName);

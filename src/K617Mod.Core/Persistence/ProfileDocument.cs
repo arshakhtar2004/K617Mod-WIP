@@ -18,6 +18,14 @@ public sealed class ProfileDocument
     public string Name { get; set; } = "";
     public string? Description { get; set; }
 
+    /// <summary>
+    /// True for the shipped "Default" profile, which is the known-good
+    /// baseline the four editable slots are copied from. The app refuses
+    /// to edit it, so there is always something intact to fall back to
+    /// after breaking one of the others.
+    /// </summary>
+    public bool IsReadOnly { get; set; }
+
     public double SteeringCurveExponent { get; set; } = 1.0;
     public double ThrottleBrakeCurveExponent { get; set; } = 2.0;
     public double DigitalPressThreshold { get; set; } = 0.3;
