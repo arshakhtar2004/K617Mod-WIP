@@ -1,0 +1,29 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <RootNamespace>K617Mod.Core</RootNamespace>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <!-- Pin this once it's confirmed working against the real device -
+         don't float on "latest" indefinitely, per the ViGEm.NET drift
+         hurdle already flagged for a later module. -->
+    <PackageReference Include="HidSharp" Version="2.1.0" />
+
+    <!-- Official .NET client for the ViGEmBus driver. Version below is
+         a best-effort pin, not verified against a live restore from this
+         environment (no NuGet access here) - if `dotnet restore` can't
+         find this exact version, open NuGet Package Manager, search
+         "Nefarius.ViGEm.Client", and take whatever the latest stable
+         release is instead. -->
+    <PackageReference Include="Nefarius.ViGEm.Client" Version="1.21.256" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="Mapping\Data\keymapping.default.json" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+
+</Project>

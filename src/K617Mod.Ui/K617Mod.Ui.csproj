@@ -1,0 +1,25 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <!-- WinExe, not Exe: stops a console window appearing behind the UI. -->
+    <OutputType>WinExe</OutputType>
+
+    <!-- net8.0-windows, not plain net8.0 - WPF is a Windows-only
+         framework and won't load without the platform suffix. -->
+    <TargetFramework>net8.0-windows</TargetFramework>
+    <UseWPF>true</UseWPF>
+
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <RootNamespace>K617Mod.Ui</RootNamespace>
+  </PropertyGroup>
+
+  <!-- Deliberately NO ProjectReference to K617Mod.Core yet.
+       This first step exists to prove the .NET 8 SDK and WPF build on
+       this machine, nothing else. If it fails, the cause is the
+       toolchain. If it were referencing Core, a NuGet restore failure
+       on the ViGEm/HidSharp package pins would look identical to a
+       broken WPF setup, and the two would be hard to tell apart.
+       Core gets wired in once this window opens. -->
+
+</Project>
