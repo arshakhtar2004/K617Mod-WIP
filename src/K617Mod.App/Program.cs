@@ -3,6 +3,7 @@ using K617Mod.Core.Mapping;
 using K617Mod.Core.Orchestration;
 using K617Mod.Core.Output;
 using K617Mod.Core.Persistence;
+using K617Mod.Core.State;
 using K617Mod.Core.Suppression;
 
 Console.WriteLine("K617 HE Racing Mod");
@@ -20,13 +21,11 @@ Console.WriteLine($"Loading profile: {startupProfileName}");
 var profile = profileStore.LoadProfile(startupProfileName);
 var keyMap = KeyMapLoader.FromDocument(profile.KeyMapping);
 
-// NOTE (known, deliberate gap - not forgotten): profile.SteeringCurveExponent /
-// ThrottleBrakeCurveExponent / DigitalPressThreshold aren't wired into
-// InputState yet - it still reads from the fixed InputTuningConfig
-// constants (Part 3), not from the active profile. Right now this makes
-// no visible difference, since the bootstrapped FH6 profile's defaults
-// happen to exactly match those constants - but the two aren't actually
-// connected yet. Natural follow-up whenever a curve-editing UI exists.
+// The profile's own response curves and digital threshold now drive the
+// pipeline, rather than the fixed constants InputState used to read.
+// Held in a TuningSource rather than passed as a plain value so it can
+// be swapped while running, once there's a UI to swap it from.
+var tuningSource = new TuningSource(profile.ToTuning());
 
 IHidKeySource hidSource = new K617HidSource();
 
@@ -44,7 +43,7 @@ catch (Exception ex)
 
 IKeySuppressor keySuppressor = new K617KeySuppressor();
 
-using var orchestrator = new AppOrchestrator(hidSource, keyMap, virtualPad, keySuppressor);
+using var orchestrator = new AppOrchestrator(hidSource, keyMap, virtualPad, keySuppressor, tuningSource);
 
 Console.WriteLine("\nHold a key on the K617 HE NOW, then press Enter.");
 Console.WriteLine("(Same reason as Part 1's harness - interface detection needs live data.)");

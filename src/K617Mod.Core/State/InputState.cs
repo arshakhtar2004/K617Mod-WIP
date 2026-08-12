@@ -25,14 +25,22 @@ public sealed class InputState : IInputState
     private readonly object _lock = new();
     private readonly Dictionary<string, double> _values;
     private readonly List<(string Action, string KeyName)> _digitalBindings;
+    private readonly ITuningSource _tuning;
 
     private readonly string? _steerLeftKey;
     private readonly string? _steerRightKey;
     private readonly string? _accelerateKey;
     private readonly string? _brakeKey;
 
-    public InputState(IKeyMap keyMap)
+    /// <param name="tuning">
+    /// Where curves and the digital threshold come from - normally the
+    /// selected profile's. Omit it and the built-in defaults are used,
+    /// which behave exactly as the old fixed constants did.
+    /// </param>
+    public InputState(IKeyMap keyMap, ITuningSource? tuning = null)
     {
+        _tuning = tuning ?? new TuningSource();
+
         _values = keyMap.BoundKeys.ToDictionary(k => k, _ => 0.0);
         _digitalBindings = new List<(string, string)>();
 
@@ -71,19 +79,26 @@ public sealed class InputState : IInputState
 
     public ControllerStateSnapshot Snapshot()
     {
+        // Read the tuning reference exactly once per tick. If a profile
+        // is applied midway through this method, the swap is invisible
+        // here - this tick finishes with the tuning it started with, and
+        // the next one picks up the new set. That is what stops a single
+        // frame being computed from a mixture of two profiles.
+        var tuning = _tuning.Current;
+
         lock (_lock)
         {
-            var left = ApplyCurve(GetValue(_steerLeftKey), InputTuningConfig.SteeringCurveExponent);
-            var right = ApplyCurve(GetValue(_steerRightKey), InputTuningConfig.SteeringCurveExponent);
+            var left = tuning.Steering.Evaluate(GetValue(_steerLeftKey));
+            var right = tuning.Steering.Evaluate(GetValue(_steerRightKey));
             var steering = Math.Clamp(right - left, -1.0, 1.0);
 
-            var accelerate = ApplyCurve(GetValue(_accelerateKey), InputTuningConfig.ThrottleBrakeCurveExponent);
-            var brake = ApplyCurve(GetValue(_brakeKey), InputTuningConfig.ThrottleBrakeCurveExponent);
+            var accelerate = tuning.Accelerate.Evaluate(GetValue(_accelerateKey));
+            var brake = tuning.Brake.Evaluate(GetValue(_brakeKey));
 
             var digitalStates = new Dictionary<string, bool>();
             foreach (var (action, keyName) in _digitalBindings)
             {
-                digitalStates[action] = GetValue(keyName) >= InputTuningConfig.DigitalPressThreshold;
+                digitalStates[action] = GetValue(keyName) >= tuning.DigitalPressThreshold;
             }
 
             return new ControllerStateSnapshot(steering, accelerate, brake, digitalStates);
@@ -100,6 +115,4 @@ public sealed class InputState : IInputState
         var span = InputTuningConfig.RawDepthMax - InputTuningConfig.RawDepthMin;
         return span == 0 ? 0.0 : (double)(clamped - InputTuningConfig.RawDepthMin) / span;
     }
-
-    private static double ApplyCurve(double value, double exponent) => Math.Pow(value, exponent);
 }

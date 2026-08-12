@@ -42,4 +42,14 @@ public sealed class ProfileDocument
     public double DigitalPressThreshold { get; set; } = 0.3;
 
     public KeyMapDocument KeyMapping { get; set; } = new();
+
+    /// <summary>
+    /// This profile's tuning in the shape the input pipeline consumes.
+    ///
+    /// Lives here rather than in State so the dependency runs one way:
+    /// Persistence knows about State, State knows nothing about
+    /// Persistence. InputState can therefore be tested with tuning built
+    /// by hand, with no profile or file system involved at all.
+    /// </summary>
+    public ProfileTuning ToTuning() => new(Curves, DigitalPressThreshold);
 }

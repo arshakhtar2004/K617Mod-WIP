@@ -42,17 +42,24 @@ public sealed class AppOrchestrator : IDisposable
     public bool SuppressionActive { get; private set; }
     public string? SuppressionError { get; private set; }
 
+    /// <param name="tuning">
+    /// Where the pipeline reads curves and the digital threshold from.
+    /// Pass a <see cref="TuningSource"/> built from the selected profile
+    /// to have this run that profile's tuning - and to be able to swap
+    /// it while running. Omit it and the built-in defaults are used.
+    /// </param>
     public AppOrchestrator(
         IHidKeySource hidSource,
         IKeyMap keyMap,
         IVirtualPad virtualPad,
         IKeySuppressor keySuppressor,
+        ITuningSource? tuning = null,
         bool enableSuppression = true,
         int tickRateHz = 64)
     {
         _hidSource = hidSource;
         _keyMap = keyMap;
-        _inputState = new K617Mod.Core.State.InputState(keyMap);
+        _inputState = new K617Mod.Core.State.InputState(keyMap, tuning);
         _virtualPad = virtualPad;
         _keySuppressor = keySuppressor;
         _enableSuppression = enableSuppression;
