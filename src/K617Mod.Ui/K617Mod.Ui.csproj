@@ -22,9 +22,21 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <RootNamespace>K617Mod.Ui</RootNamespace>
 
-    <!-- Elevation and DPI awareness. See app.manifest for why this
-         asks for administrator rather than running as invoker. -->
+    <!-- Elevation. See app.manifest for why this asks for administrator
+         rather than running as invoker. -->
     <ApplicationManifest>app.manifest</ApplicationManifest>
+
+    <!-- DPI awareness lives here, not in app.manifest. UseWindowsForms
+         generates its own manifest fragment for this, and declaring it
+         a second time in app.manifest made `dotnet publish` fail with
+         MSB3094 (two manifest sources, one destination slot) - the
+         WFAC010 warning printed just before that error names this exact
+         property as the fix. This is a process-wide Win32 setting, so it
+         covers the WPF windows as well as WinForms' tray icon, not just
+         the control that happens to be WinForms. PerMonitorV2 specifically
+         because the curve editor draws to exact pixel coordinates and
+         would otherwise get bitmap-stretched on a scaled display. -->
+    <ApplicationHighDpiMode>PerMonitorV2</ApplicationHighDpiMode>
 
     <!-- The name on the thing a person double-clicks. Without this the
          output is K617Mod.Ui.exe, which reads like an internal build

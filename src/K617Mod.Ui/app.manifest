@@ -39,13 +39,21 @@
     </application>
   </compatibility>
 
-  <application xmlns="urn:schemas-microsoft-com:asm.v3">
-    <windowsSettings>
-      <!-- The curve editor draws to exact pixel coordinates. Without
-           per-monitor DPI awareness it gets bitmap-stretched on a
-           scaled display, which makes a graph look blurry. -->
-      <dpiAwareness xmlns="http://schemas.microsoft.com/SMI/2016/WindowsSettings">PerMonitorV2</dpiAwareness>
-      <dpiAware xmlns="http://schemas.microsoft.com/SMI/2005/WindowsSettings">true</dpiAware>
-    </windowsSettings>
-  </application>
+  <!--
+    DPI awareness is deliberately NOT declared here, even though the
+    curve editor draws to exact pixel coordinates and wants
+    PerMonitorV2 to avoid being bitmap-stretched on a scaled display.
+
+    UseWindowsForms=true (needed for the tray icon) pulls in WinForms'
+    own manifest-generation machinery, which also wants to own the DPI
+    settings. Declaring them here too gave dotnet publish two manifest
+    fragments competing for one output slot - MSB3094 ("SourceFiles
+    refers to 2 item(s)... DestinationFiles refers to 1"), confirmed by
+    the WFAC010 warning printed right before it: "Remove high DPI
+    settings from app.manifest and configure via ... 'ApplicationHighDpiMode'
+    project property". PerMonitorV2 is set the WinForms-supported way
+    instead, via ApplicationHighDpiMode in K617Mod.Ui.csproj - it is a
+    process-wide Win32 setting, so it covers the WPF windows too, not
+    just WinForms' own tray icon.
+  -->
 </assembly>

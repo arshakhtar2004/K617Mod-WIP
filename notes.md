@@ -1293,3 +1293,42 @@ Default. Two tests cover both directions.
 
 This makes the "delete the stale profile JSONs" task cosmetic rather
 than load-bearing, but they should still go.
+
+## Publish fix — DPI manifest clash, 13 Aug
+
+Arsh ran the whole verification chain on Windows. Good news first:
+`dotnet test` — 134/134 pass, including everything from the profile
+wiring and the startup-profile fix. Push landed clean, fast-forward,
+both bundle commits and the tag.
+
+`publish.cmd` failed:
+
+```
+CSC : warning WFAC010: Remove high DPI settings from ...app.manifest and
+      configure via Application.SetHighDpiMode API or
+      'ApplicationHighDpiMode' project property
+...
+error MSB3094: "DestinationFiles" refers to 1 item(s), and "SourceFiles"
+      refers to 2 item(s). They must have the same number of items.
+```
+
+The warning names the cause: `UseWindowsForms=true` (needed for the tray
+icon) pulls in WinForms' own manifest-generation step, which also wants
+to own the DPI settings. `app.manifest` declared `dpiAwareness`/
+`dpiAware` directly as well, so publish had two manifest fragments
+competing for one output slot.
+
+Fix: removed the `<application>/<windowsSettings>` block from
+`app.manifest` entirely, and set `<ApplicationHighDpiMode>PerMonitorV2
+</ApplicationHighDpiMode>` in `K617Mod.Ui.csproj` instead - the
+WinForms-supported path the warning pointed at. This is a process-wide
+Win32 setting, so it still covers the WPF windows (the curve editor is
+the thing that actually needed it), not just the WinForms tray icon.
+
+**Not yet re-verified** - this is reasoned from the warning's own
+wording and how `ApplicationHighDpiMode` is documented to work, not from
+a successful publish. Next run of `publish.cmd` is the real test.
+
+Also present in the same build output, unrelated and pre-existing:
+`ActionButtonMap.cs(51,37): warning CS8601` (possible null reference
+assignment). Not touched by any of today's work; left alone.
