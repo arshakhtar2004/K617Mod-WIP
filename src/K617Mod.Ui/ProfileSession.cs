@@ -71,9 +71,6 @@ public sealed class ProfileSession : INotifyPropertyChanged
     {
         var appDataRoot = Path.Combine(
             Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "K617Mod");
-        var defaultProfilePath = Path.Combine(
-            AppContext.BaseDirectory, "Mapping", "Data", "profile.default.json");
-
         _store = new JsonProfileStore(appDataRoot);
 
         Bindings = XboxControls.All.ToDictionary(
@@ -86,7 +83,7 @@ public sealed class ProfileSession : INotifyPropertyChanged
         try
         {
             _selectedProfileName =
-                ProfileBootstrapper.EnsureBootstrappedAndGetStartupProfileName(_store, defaultProfilePath);
+                ProfileBootstrapper.EnsureBootstrappedAndGetStartupProfileName(_store);
         }
         catch (Exception ex)
         {

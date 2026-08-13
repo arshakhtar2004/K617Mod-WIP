@@ -1196,3 +1196,86 @@ against the same Core sources, since xunit itself can't be restored. All
 against a concurrent `Snapshot()` reader. Everything WPF-facing
 (`App.xaml.cs`, `MainWindow.xaml`) is unverified — it needs a Windows
 build.
+
+## Publishable exe, 13 Aug
+
+Goal: one file to double-click, rather than `dotnet run` in a terminal.
+Chosen over a desktop shortcut to `bin\Debug` (breaks on clean, still
+needs the SDK) and over an in-app "start with Windows" toggle (a
+different feature — see the UAC note below for why that one is now
+harder).
+
+### What was added
+
+- `src/K617Mod.Ui/app.manifest` — `requireAdministrator` and
+  PerMonitorV2 DPI awareness. Wired in via `<ApplicationManifest>`.
+- `AssemblyName` changed to `K617Mod`, so the output is `K617Mod.exe`
+  rather than `K617Mod.Ui.exe`.
+- `src/publish.cmd` — wraps the publish flags. Output goes to
+  `src/dist/K617Mod.exe`.
+- `publish-runbook.md` — the procedure, with the failure modes attached
+  to the steps that cause them.
+
+### The elevation decision
+
+Suppression opens `\\.\interception00..19`, which needs elevation.
+Unelevated, the app starts, suppression fails, and it lands in
+"Running, but suppression FAILED — keys also type": controller works,
+keyboard also types into the game. That is a bad thing to hand someone
+who just double-clicked a program, so the manifest asks for admin.
+
+Two consequences worth having written down:
+
+- A UAC prompt on every launch.
+- A `requireAdministrator` app **cannot** be launched from
+  `HKCU\Software\Microsoft\Windows\CurrentVersion\Run`. If "start with
+  Windows" gets built later it needs a Task Scheduler task with
+  "run with highest privileges", not the registry key.
+
+### Publish settings, and what was rejected
+
+Self-contained, single file, compressed, **not** trimmed.
+
+- *Self-contained* because "here is an exe, run it" has to be true for
+  someone who has never installed .NET. Costs ~150MB before compression.
+- *Single file* so it's one artefact, not a folder of 200 DLLs.
+  `IncludeNativeLibrariesForSelfExtract` is required for WPF — its
+  native rendering libraries can't load from inside the bundle and get
+  unpacked to temp on first run, which is why the first launch after a
+  publish is slower.
+- *Not trimmed*, deliberately. WPF reflects throughout; a trimmed build
+  compiles and then fails at runtime on whichever screen touched the
+  trimmed type. Not worth the size saving.
+
+The flags live in `publish.cmd`, not the csproj, so an ordinary
+`dotnet build` isn't slowed down and nothing depends on guessing which
+MSBuild property means "publishing right now" (`_IsPublishing` is
+undocumented).
+
+### The bug this surfaced
+
+`profile.default.json` was only ever found through
+`Path.Combine(AppContext.BaseDirectory, "Mapping", "Data", ...)`. That
+is correct out of `bin/Debug` and would have broken on a single-file
+publish — the app would have launched, found no baseline, and created no
+profiles at all, on a first run on a clean machine. Exactly the failure
+that only appears in front of the person you handed the exe to.
+
+Fixed by embedding the same file as an `EmbeddedResource` in
+`K617Mod.Core` and reading it through the new `DefaultProfileTemplate`.
+`ProfileBootstrapper` gained a parameterless overload that uses it; the
+path-taking overload is unchanged, so the console host, the harnesses
+and the existing bootstrapper tests are untouched. The loose copy is
+still the one to edit — the embedded copy is produced from it at build
+time, and `DefaultProfileTemplateTests` fails if the two drift.
+
+Resource name is `K617Mod.Core.Mapping.Data.profile.default.json`,
+verified empirically by building a scratch project and listing
+`GetManifestResourceNames()` rather than assuming MSBuild's naming rule.
+
+### Not verified
+
+The publish itself has never been run — there is no Windows machine in
+the sandbox, and WPF cannot build on Linux at all. Everything above is
+reasoned from the SDK's documented behaviour plus the one thing that was
+actually tested (the embedded resource name and its round trip).

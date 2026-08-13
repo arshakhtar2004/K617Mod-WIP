@@ -54,7 +54,32 @@ public static class ProfileBootstrapper
     /// needs creating, so that file stays the single source of truth for
     /// the baseline mapping rather than a second copy hardcoded here.
     /// </param>
-    public static string EnsureBootstrappedAndGetStartupProfileName(IProfileStore store, string defaultProfilePath)
+    public static string EnsureBootstrappedAndGetStartupProfileName(IProfileStore store, string defaultProfilePath) =>
+        EnsureBootstrapped(store, () => LoadTemplate(defaultProfilePath));
+
+    /// <summary>
+    /// Same thing, but taking the baseline from the copy embedded in
+    /// this assembly rather than from a file on disk. This is what the
+    /// shipping app uses.
+    ///
+    /// Reading the baseline out of AppContext.BaseDirectory is fine
+    /// running from bin/Debug and stops being fine the moment the app is
+    /// published as a single file - it would launch, find no baseline,
+    /// and create no profiles at all. The embedded copy lives inside the
+    /// DLL, so it is present in every build and every layout.
+    ///
+    /// The loose file is still the one to edit; the embedded copy is
+    /// produced from it at build time, so the two cannot drift.
+    /// </summary>
+    public static string EnsureBootstrappedAndGetStartupProfileName(IProfileStore store) =>
+        EnsureBootstrapped(store, DefaultProfileTemplate.Load);
+
+    /// <param name="loadTemplate">
+    /// Deferred on purpose: the baseline is only read when a profile
+    /// actually needs creating, so a missing or unreadable template is
+    /// not an error on the normal path where all five already exist.
+    /// </param>
+    private static string EnsureBootstrapped(IProfileStore store, Func<ProfileDocument> loadTemplate)
     {
         var existing = store.ListProfileNames();
         var missing = AllProfileNames
@@ -63,7 +88,7 @@ public static class ProfileBootstrapper
 
         if (missing.Count > 0)
         {
-            var template = LoadTemplate(defaultProfilePath);
+            var template = loadTemplate();
 
             foreach (var name in missing)
             {

@@ -21,6 +21,23 @@
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
     <RootNamespace>K617Mod.Ui</RootNamespace>
+
+    <!-- Elevation and DPI awareness. See app.manifest for why this
+         asks for administrator rather than running as invoker. -->
+    <ApplicationManifest>app.manifest</ApplicationManifest>
+
+    <!-- The name on the thing a person double-clicks. Without this the
+         output is K617Mod.Ui.exe, which reads like an internal build
+         artefact rather than an application. -->
+    <AssemblyName>K617Mod</AssemblyName>
+    <Product>K617 HE Racing Mod</Product>
+    <AssemblyVersion>0.1.0.0</AssemblyVersion>
+    <FileVersion>0.1.0.0</FileVersion>
+
+    <!-- Publish settings deliberately live in publish.cmd rather than
+         here, so an ordinary `dotnet build` is not slowed down by them
+         and nothing depends on guessing which MSBuild property means
+         "we are publishing right now". -->
   </PropertyGroup>
 
   <ItemGroup>

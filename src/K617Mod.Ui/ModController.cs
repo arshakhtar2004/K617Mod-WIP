@@ -79,9 +79,6 @@ public sealed class ModController : IDisposable
     {
         var appDataRoot = Path.Combine(
             Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "K617Mod");
-        var defaultProfilePath = Path.Combine(
-            AppContext.BaseDirectory, "Mapping", "Data", "profile.default.json");
-
         _store = new JsonProfileStore(appDataRoot);
 
         // Bootstrap here rather than inside Start(). It has to happen
@@ -91,7 +88,7 @@ public sealed class ModController : IDisposable
         try
         {
             ActiveProfileName =
-                ProfileBootstrapper.EnsureBootstrappedAndGetStartupProfileName(_store, defaultProfilePath);
+                ProfileBootstrapper.EnsureBootstrappedAndGetStartupProfileName(_store);
         }
         catch
         {

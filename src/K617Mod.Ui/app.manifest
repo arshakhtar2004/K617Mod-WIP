@@ -1,0 +1,51 @@
+<?xml version="1.0" encoding="utf-8"?>
+<assembly manifestVersion="1.0" xmlns="urn:schemas-microsoft-com:asm.v1">
+  <assemblyIdentity version="1.0.0.0" name="K617Mod.Ui" />
+
+  <!--
+    requireAdministrator, not asInvoker.
+
+    Suppression opens the Interception driver's device files
+    (\\.\interception00 .. 19). Those need elevation. Without this
+    manifest, double-clicking the exe launches it unelevated, the
+    pipeline starts, suppression fails, and the app lands in its
+    "Running, but suppression FAILED - keys also type" state: the
+    controller works but the keyboard types into the game at the same
+    time. That is a confusing failure to hand someone who just wanted to
+    run the program, and it is the one thing standing between "it's an
+    exe" and "it works when you double-click it".
+
+    The cost is a UAC prompt on every launch, and that a
+    requireAdministrator app cannot be started from the ordinary
+    HKCU\...\Run registry key - a "start with Windows" feature would
+    need a Task Scheduler task with highest privileges instead. Worth
+    knowing before that gets built.
+  -->
+  <trustInfo xmlns="urn:schemas-microsoft-com:asm.v2">
+    <security>
+      <requestedPrivileges xmlns="urn:schemas-microsoft-com:asm.v3">
+        <requestedExecutionLevel level="requireAdministrator" uiAccess="false" />
+      </requestedPrivileges>
+    </security>
+  </trustInfo>
+
+  <compatibility xmlns="urn:schemas-microsoft-com:compatibility.v1">
+    <application>
+      <!-- Windows 10 and 11. Declaring these stops Windows applying
+           compatibility shims meant for older programs. -->
+      <supportedOS Id="{8e0f7a12-bfb3-4fe8-b9a5-48fd50a15a9a}" />
+      <supportedOS Id="{1f676c76-80e1-4239-95bb-83d0f6d0da78}" />
+      <supportedOS Id="{4a2f28e3-53b9-4441-ba9c-d69d4a4a6e38}" />
+    </application>
+  </compatibility>
+
+  <application xmlns="urn:schemas-microsoft-com:asm.v3">
+    <windowsSettings>
+      <!-- The curve editor draws to exact pixel coordinates. Without
+           per-monitor DPI awareness it gets bitmap-stretched on a
+           scaled display, which makes a graph look blurry. -->
+      <dpiAwareness xmlns="http://schemas.microsoft.com/SMI/2016/WindowsSettings">PerMonitorV2</dpiAwareness>
+      <dpiAware xmlns="http://schemas.microsoft.com/SMI/2005/WindowsSettings">true</dpiAware>
+    </windowsSettings>
+  </application>
+</assembly>

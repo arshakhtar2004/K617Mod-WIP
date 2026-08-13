@@ -28,6 +28,14 @@
          ProjectReference into the referencing project's output folder,
          None does not. K617Mod.Ui needs this file next to its own exe. -->
     <Content Include="Mapping\Data\profile.default.json" CopyToOutputDirectory="PreserveNewest" />
+
+    <!-- Embedded as well as copied. The loose copy is what the console
+         host and the harnesses read, and it stays the file to edit. The
+         embedded one is what the published app reads, because a
+         single-file publish has no folder beside the exe to look in -
+         see DefaultProfileTemplate. Same source file embedded at build
+         time, so the two cannot drift. -->
+    <EmbeddedResource Include="Mapping\Data\profile.default.json" />
   </ItemGroup>
 
 </Project>
