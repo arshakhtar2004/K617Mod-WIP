@@ -1380,3 +1380,33 @@ real reasons, just not MSB3094's.
 **Verified:** `src\dist\K617Mod.exe` exists on Arsh's machine,
 confirmed via `Test-Path`. Launch itself (tray icon, elevation prompt,
 mod status) not yet checked.
+
+## v0.2.0 — profiles wired, publishable build, 13 Aug
+
+Closing entry for this arc. Session started from "profiles exist but
+aren't connected to anything" and ends here:
+
+- Profiles apply to a running mod immediately, both halves (bindings and
+  curves), with no pipeline restart — see "Profiles wired into the
+  running mod" above for the mechanism.
+- A publishable single-file `K617Mod.exe` exists, builds clean, and has
+  been launched successfully on Windows (`Get-Process` confirmed it
+  running).
+- Two bugs the exe work surfaced and fixed along the way: the baseline
+  profile would have been unreachable from a single-file publish
+  (`DefaultProfileTemplate`), and the startup profile could resolve to a
+  stale pre-five-profile file like `FH6.json` that the UI can't display.
+- `dotnet test`: 134/134 on Windows.
+- Added a top-level `README.md` — the project had none before this;
+  only the incremental `README-Part*.md` build log existed. Written for
+  the resume audience CLAUDE.md specifies: honest about what's verified
+  versus not, and flags the two open questions (native gamepad mode,
+  prior art) rather than glossing them.
+- `AssemblyVersion`/`FileVersion` bumped to 0.2.0.0; tagged `v0.2.0` on
+  `main`.
+
+**Still open, flagged rather than claimed done:** switching profile
+*while the mod is running on real hardware* hasn't had a hands-on check
+yet - implemented, unit-tested, integration-tested, but not watched
+happen with a game open. That's the one thing between "should work" and
+"confirmed working" for the actual feature this session was about.
