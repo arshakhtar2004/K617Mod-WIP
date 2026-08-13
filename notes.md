@@ -1279,3 +1279,17 @@ The publish itself has never been run — there is no Windows machine in
 the sandbox, and WPF cannot build on Linux at all. Everything above is
 reasoned from the SDK's documented behaviour plus the one thing that was
 actually tested (the embedded resource name and its round trip).
+
+### Startup profile could resolve to a profile the UI doesn't list
+
+Found while reasoning about first launch, not by running it.
+`EnsureBootstrappedAndGetStartupProfileName` accepted any last-active
+name that existed *as a file*. `%AppData%\K617Mod\profiles` still holds
+`FH6.json` and `Typing.json` from the pre-five-profile design, so the app
+could have opened running FH6 while every profile dropdown showed a blank
+selection - `ProfileNames` lists only the fixed five. Now checked against
+`AllProfileNames` as well as the folder; anything else falls back to
+Default. Two tests cover both directions.
+
+This makes the "delete the stale profile JSONs" task cosmetic rather
+than load-bearing, but they should still go.

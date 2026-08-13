@@ -80,3 +80,57 @@ public class DefaultProfileTemplateTests
         }
     }
 }
+
+/// <summary>
+/// The startup profile has to come from the five names the app knows
+/// about, not from whatever files are in the profile folder. Those
+/// differ in practice: pre-five-profile installs still have FH6.json
+/// and Typing.json sitting there.
+/// </summary>
+public class StartupProfileResolutionTests
+{
+    [Fact]
+    public void AProfileOutsideTheFixedSetIsNotResolvedAsTheStartupProfile()
+    {
+        var root = Path.Combine(Path.GetTempPath(), "K617ModTests", Guid.NewGuid().ToString("N"));
+        try
+        {
+            var store = new JsonProfileStore(root);
+            ProfileBootstrapper.EnsureBootstrappedAndGetStartupProfileName(store);
+
+            // A leftover from the old design, still on disk and still
+            // named as the last active one.
+            store.SaveProfile(new ProfileDocument { Name = "FH6" });
+            store.SetLastActiveProfileName("FH6");
+
+            var startup = ProfileBootstrapper.EnsureBootstrappedAndGetStartupProfileName(store);
+
+            // Not "FH6" - the UI lists only the five, so selecting it
+            // would leave every profile dropdown showing nothing while
+            // the mod quietly ran something else.
+            Assert.Equal(ProfileBootstrapper.DefaultProfileName, startup);
+        }
+        finally
+        {
+            if (Directory.Exists(root)) Directory.Delete(root, recursive: true);
+        }
+    }
+
+    [Fact]
+    public void AProfileInsideTheFixedSetIsResolvedNormally()
+    {
+        var root = Path.Combine(Path.GetTempPath(), "K617ModTests", Guid.NewGuid().ToString("N"));
+        try
+        {
+            var store = new JsonProfileStore(root);
+            ProfileBootstrapper.EnsureBootstrappedAndGetStartupProfileName(store);
+            store.SetLastActiveProfileName("Profile 3");
+
+            Assert.Equal("Profile 3", ProfileBootstrapper.EnsureBootstrappedAndGetStartupProfileName(store));
+        }
+        finally
+        {
+            if (Directory.Exists(root)) Directory.Delete(root, recursive: true);
+        }
+    }
+}

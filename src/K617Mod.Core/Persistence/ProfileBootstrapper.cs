@@ -110,8 +110,19 @@ public static class ProfileBootstrapper
             }
         }
 
+        // Checked against the five names this app knows about, not
+        // against whatever files happen to be in the profile folder.
+        //
+        // Those are not the same set. %AppData%\K617Mod\profiles still
+        // holds FH6.json and Typing.json from the pre-five-profile
+        // design, and "is it in the folder" would happily resolve the
+        // startup profile to FH6 - a profile the app would then run
+        // while every profile dropdown showed a blank selection, because
+        // "FH6" is not one of the five they list. Anything outside the
+        // fixed set falls back to Default instead.
         var lastActive = store.GetLastActiveProfileName();
         return lastActive is not null
+               && AllProfileNames.Contains(lastActive, StringComparer.OrdinalIgnoreCase)
                && store.ListProfileNames().Contains(lastActive, StringComparer.OrdinalIgnoreCase)
             ? lastActive
             : DefaultProfileName;
