@@ -14,6 +14,11 @@ namespace K617Mod.Core.State;
 /// original Python mapper.py, which referenced "J"/"L"/"I"/"K" directly.
 /// Remapping steering to different keys via keymapping.json needs no
 /// change here.
+///
+/// Both halves of a profile can now be replaced while running:
+/// <see cref="ApplyBindings"/> for the key map, and the ITuningSource for
+/// the curves. Between them, applying a profile no longer requires the
+/// pipeline to be torn down and rebuilt.
 /// </summary>
 public sealed class InputState : IInputState
 {
@@ -29,20 +34,18 @@ public sealed class InputState : IInputState
     private const string RightStickDownAction = "RS_DOWN";
 
     private readonly object _lock = new();
-    private readonly Dictionary<string, double> _values;
-    private readonly List<(string Action, string KeyName)> _digitalBindings;
     private readonly ITuningSource _tuning;
 
-    private readonly string? _steerLeftKey;
-    private readonly string? _steerRightKey;
-    private readonly string? _accelerateKey;
-    private readonly string? _brakeKey;
-    private readonly string? _leftStickUpKey;
-    private readonly string? _leftStickDownKey;
-    private readonly string? _rightStickLeftKey;
-    private readonly string? _rightStickRightKey;
-    private readonly string? _rightStickUpKey;
-    private readonly string? _rightStickDownKey;
+    /// <summary>
+    /// Latest normalized depth per bound key. Case-insensitive: Update()
+    /// used to upper-case its argument before looking in here, which
+    /// silently ignored any key the map had stored in lower case. The
+    /// comparer does that job properly instead.
+    /// </summary>
+    private readonly Dictionary<string, double> _values =
+        new(StringComparer.OrdinalIgnoreCase);
+
+    private KeyBindingSet _bindings;
 
     /// <param name="tuning">
     /// Where curves and the digital threshold come from - normally the
@@ -52,45 +55,61 @@ public sealed class InputState : IInputState
     public InputState(IKeyMap keyMap, ITuningSource? tuning = null)
     {
         _tuning = tuning ?? new TuningSource();
+        _bindings = KeyBindingSet.FromKeyMap(keyMap);
 
-        _values = keyMap.BoundKeys.ToDictionary(k => k, _ => 0.0);
-        _digitalBindings = new List<(string, string)>();
-
-        foreach (var keyName in keyMap.BoundKeys)
+        foreach (var keyName in _bindings.BoundKeys)
         {
-            var binding = keyMap.GetControllerAction(keyName);
-            if (binding is null) continue;
+            _values[keyName] = 0.0;
+        }
+    }
 
-            if (binding.Value.Kind == InputType.Digital)
+    /// <summary>
+    /// Swaps in a different profile's key bindings without interrupting
+    /// the pipeline.
+    ///
+    /// Takes the same lock Update() and Snapshot() already use, rather
+    /// than the lock-free volatile swap ITuningSource does. Tuning can
+    /// get away without a lock because it is read once per tick and
+    /// nothing else touches it; bindings are read together with the
+    /// mutable depth values they index into, so the two have to change as
+    /// one thing. That lock is taken 64 times a second regardless, and a
+    /// binding swap happens when a person clicks something, so the
+    /// contention cost is nil.
+    ///
+    /// Depth readings for keys that stay bound are carried across, so a
+    /// key held down through a profile change does not spuriously
+    /// release. Keys that are no longer bound are dropped, which is what
+    /// stops a stale depth reappearing if that key is rebound later.
+    /// </summary>
+    public void ApplyBindings(KeyBindingSet bindings)
+    {
+        ArgumentNullException.ThrowIfNull(bindings);
+
+        lock (_lock)
+        {
+            var carried = new Dictionary<string, double>(StringComparer.OrdinalIgnoreCase);
+            foreach (var keyName in bindings.BoundKeys)
             {
-                _digitalBindings.Add((binding.Value.Action, keyName));
-                continue;
+                carried[keyName] = _values.TryGetValue(keyName, out var existing) ? existing : 0.0;
             }
 
-            switch (binding.Value.Action)
+            _values.Clear();
+            foreach (var (keyName, value) in carried)
             {
-                case SteerLeftAction: _steerLeftKey = keyName; break;
-                case SteerRightAction: _steerRightKey = keyName; break;
-                case AccelerateAction: _accelerateKey = keyName; break;
-                case BrakeAction: _brakeKey = keyName; break;
-                case LeftStickUpAction: _leftStickUpKey = keyName; break;
-                case LeftStickDownAction: _leftStickDownKey = keyName; break;
-                case RightStickLeftAction: _rightStickLeftKey = keyName; break;
-                case RightStickRightAction: _rightStickRightKey = keyName; break;
-                case RightStickUpAction: _rightStickUpKey = keyName; break;
-                case RightStickDownAction: _rightStickDownKey = keyName; break;
+                _values[keyName] = value;
             }
+
+            _bindings = bindings;
         }
     }
 
     public void Update(string keyName, int rawDepth)
     {
-        var upper = keyName.ToUpperInvariant();
         lock (_lock)
         {
-            if (_values.ContainsKey(upper))
+            if (_values.ContainsKey(keyName))
             {
-                _values[upper] = Normalize(rawDepth);
+                _values[keyName] = Normalize(rawDepth);
             }
         }
     }
@@ -106,19 +125,35 @@ public sealed class InputState : IInputState
 
         lock (_lock)
         {
+            // Same reasoning one level down: read the binding set once so
+            // every axis in this snapshot comes from the same profile,
+            // even if Apply lands mid-method.
+            var bindings = _bindings;
+
             // Each axis is two opposing keys sharing one curve, combined
             // into a single -1..1 value. Pressing both at once cancels
             // out, exactly as pushing a real stick two ways would.
-            var leftStickX = Axis(tuning.CurveFor(CurveAxes.LeftStickX), _steerRightKey, _steerLeftKey);
-            var leftStickY = Axis(tuning.CurveFor(CurveAxes.LeftStickY), _leftStickUpKey, _leftStickDownKey);
-            var rightStickX = Axis(tuning.CurveFor(CurveAxes.RightStickX), _rightStickRightKey, _rightStickLeftKey);
-            var rightStickY = Axis(tuning.CurveFor(CurveAxes.RightStickY), _rightStickUpKey, _rightStickDownKey);
+            var leftStickX = Axis(tuning.CurveFor(CurveAxes.LeftStickX),
+                bindings.KeyForAnalogAction(SteerRightAction),
+                bindings.KeyForAnalogAction(SteerLeftAction));
 
-            var accelerate = tuning.Accelerate.Evaluate(GetValue(_accelerateKey));
-            var brake = tuning.Brake.Evaluate(GetValue(_brakeKey));
+            var leftStickY = Axis(tuning.CurveFor(CurveAxes.LeftStickY),
+                bindings.KeyForAnalogAction(LeftStickUpAction),
+                bindings.KeyForAnalogAction(LeftStickDownAction));
+
+            var rightStickX = Axis(tuning.CurveFor(CurveAxes.RightStickX),
+                bindings.KeyForAnalogAction(RightStickRightAction),
+                bindings.KeyForAnalogAction(RightStickLeftAction));
+
+            var rightStickY = Axis(tuning.CurveFor(CurveAxes.RightStickY),
+                bindings.KeyForAnalogAction(RightStickUpAction),
+                bindings.KeyForAnalogAction(RightStickDownAction));
+
+            var accelerate = tuning.Accelerate.Evaluate(GetValue(bindings.KeyForAnalogAction(AccelerateAction)));
+            var brake = tuning.Brake.Evaluate(GetValue(bindings.KeyForAnalogAction(BrakeAction)));
 
             var digitalStates = new Dictionary<string, bool>();
-            foreach (var (action, keyName) in _digitalBindings)
+            foreach (var (action, keyName) in bindings.DigitalBindings)
             {
                 digitalStates[action] = GetValue(keyName) >= tuning.DigitalPressThreshold;
             }

@@ -45,19 +45,39 @@ exact same `AppOrchestrator` class the exact same way - only the outer
 shell (console vs. window) changes. None of today's wiring/threading
 logic gets thrown away or rewritten.
 
-## A known, deliberate gap - flagged, not forgotten
+## Profiles reaching the running pipeline
 
-Part 6 made curve exponents and the digital-press threshold per-profile
-values instead of fixed constants. `Program.cs` loads those values from
-the active profile but **doesn't actually pass them into `InputState`
-yet** - `InputState` still reads from Part 3's fixed
-`InputTuningConfig` constants. Right now this causes no visible
-difference (the bootstrapped FH6 profile's default values happen to
-exactly match those constants), so it's safe to defer rather than solve
-today. The natural point to wire this properly is whenever the
-curve-editing UI arrives, since that's the first time someone could
-actually enter a *different* value and expect to feel it. Flagged
-directly in `Program.cs`'s comments too.
+Part 6 made curves and the digital-press threshold per-profile values
+instead of fixed constants. Two follow-ups closed the loop.
+
+**Tuning.** `InputState` reads curves and the threshold through an
+`ITuningSource` rather than from `InputTuningConfig`, so the numbers a
+profile holds are the numbers the pipeline uses. `InputTuningConfig` is
+now only the raw depth range, which is hardware calibration rather than
+preference.
+
+**Bindings.** `InputState` used to read an `IKeyMap` once in its
+constructor and cache the answers in readonly fields, which meant a
+remap could only take effect by rebuilding the whole pipeline -
+dropping suppression and the virtual pad, so the game saw the controller
+disconnect and reconnect every time a key was reassigned. `KeyBindingSet`
+is the mapping half of a profile in the shape the pipeline consumes, the
+exact counterpart of `ProfileTuning`, and `InputState.ApplyBindings` /
+`AppOrchestrator.ApplyKeyMap` swap it while running.
+
+The two halves are swapped by different mechanisms on purpose. Tuning is
+read once per tick and nothing else touches it, so a volatile reference
+assignment is enough and the hot path stays lock-free. Bindings are read
+together with the mutable depth values they index into, so both change
+under the lock `Update()` and `Snapshot()` already share - a lock taken
+64 times a second regardless, against a swap that happens when a person
+clicks something.
+
+Net effect: selecting a profile, or saving an edit to the one already
+selected, takes effect immediately on a running mod with no interruption
+the game can see. `ModController.ApplyProfile` is the single entry point
+for that, and `App.xaml.cs` is the only place the profile editor and the
+running mod know about each other.
 
 ## Build & test steps
 

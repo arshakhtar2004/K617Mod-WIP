@@ -57,12 +57,21 @@ public sealed class ModController : IDisposable
     private const int AsleepKeystrokeThreshold = 3;
 
     private readonly object _gate = new();
-    private readonly IProfileStore _settingsStore;
+    private readonly IProfileStore _store;
 
     private AppOrchestrator? _orchestrator;
     private K617HidSource? _hidSource;
     private K617KeySuppressor? _suppressor;
     private System.Threading.Timer? _watchdog;
+
+    /// <summary>
+    /// The tuning of the running pipeline. Held rather than being a local
+    /// in Start() so a curve change can be pushed into a pipeline that is
+    /// already going - previously this reference was dropped on the floor
+    /// the moment Start() returned, which is why saving a curve did
+    /// nothing until the mod was toggled off and on again.
+    /// </summary>
+    private TuningSource? _tuning;
 
     private volatile bool _sawAnalogData;
 
@@ -70,8 +79,34 @@ public sealed class ModController : IDisposable
     {
         var appDataRoot = Path.Combine(
             Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "K617Mod");
-        _settingsStore = new JsonProfileStore(appDataRoot);
+        var defaultProfilePath = Path.Combine(
+            AppContext.BaseDirectory, "Mapping", "Data", "profile.default.json");
+
+        _store = new JsonProfileStore(appDataRoot);
+
+        // Bootstrap here rather than inside Start(). It has to happen
+        // before any profile can be loaded, it is idempotent, and doing
+        // it once at construction means a start/stop cycle isn't
+        // re-listing the profile directory every time.
+        try
+        {
+            ActiveProfileName =
+                ProfileBootstrapper.EnsureBootstrappedAndGetStartupProfileName(_store, defaultProfilePath);
+        }
+        catch
+        {
+            // Leave ActiveProfileName at Default. Start() will fail with
+            // the real reason if the profile genuinely can't be read;
+            // there's nothing useful to report from a constructor.
+            ActiveProfileName = ProfileBootstrapper.DefaultProfileName;
+        }
     }
+
+    /// <summary>
+    /// The profile the mod is running, or would run if started. Changed
+    /// only through <see cref="ApplyProfile"/>.
+    /// </summary>
+    public string ActiveProfileName { get; private set; } = ProfileBootstrapper.DefaultProfileName;
 
     public ModStatus Status { get; private set; } = ModStatus.Stopped;
 
@@ -93,7 +128,82 @@ public sealed class ModController : IDisposable
     /// unrelated shutdown or a wake-step problem doesn't silently flip
     /// next launch to off.
     /// </summary>
-    public bool ShouldStartOnLaunch() => _settingsStore.GetLastModeActive();
+    public bool ShouldStartOnLaunch() => _store.GetLastModeActive();
+
+    /// <summary>
+    /// Make a profile the live one. Safe to call whether the mod is
+    /// running or stopped, and the only supported way to change which
+    /// profile is in effect.
+    ///
+    /// While running, this swaps both halves in place rather than
+    /// restarting the pipeline. A restart would drop suppression and the
+    /// virtual pad for a moment, which the game sees as the controller
+    /// disconnecting and reconnecting - not acceptable for something a
+    /// person does mid-session.
+    ///
+    /// While stopped, it records the choice and persists it; the next
+    /// Start() builds from it.
+    ///
+    /// Returns null on success, or a message describing why the profile
+    /// could not be applied. Deliberately does not throw and does not
+    /// change Status: a profile that fails to load leaves the mod running
+    /// correctly on the previous one, which is not an error state for the
+    /// mod itself, only for the thing that asked for the change.
+    /// </summary>
+    public string? ApplyProfile(string profileName)
+    {
+        if (string.IsNullOrWhiteSpace(profileName)) return "No profile name given.";
+
+        lock (_gate)
+        {
+            ProfileDocument profile;
+            try
+            {
+                profile = _store.LoadProfile(profileName);
+            }
+            catch (Exception ex)
+            {
+                return $"Could not load '{profileName}': {ex.Message}";
+            }
+
+            if (IsRunning)
+            {
+                try
+                {
+                    // Curves first, bindings second. Both are safe on their
+                    // own; doing tuning first means the worst case of a
+                    // failure between them is the new curves applied to the
+                    // old bindings, which is a tuning oddity rather than
+                    // keys doing the wrong thing.
+                    _tuning?.Apply(profile.ToTuning());
+                    _orchestrator?.ApplyKeyMap(KeyMapLoader.FromDocument(profile.KeyMapping));
+                }
+                catch (Exception ex)
+                {
+                    return $"Could not apply '{profileName}' to the running mod: {ex.Message}";
+                }
+            }
+
+            ActiveProfileName = profileName;
+
+            // Persisted on every change, not just when the profile editor
+            // saves. Selecting a profile and closing the app used to lose
+            // the choice, and the read-only Default could never be stored
+            // as active at all, because the only call site was inside a
+            // save path that refuses to run for read-only profiles.
+            try { _store.SetLastActiveProfileName(profileName); }
+            catch { /* the profile is live; only the memory of it didn't save */ }
+
+            return null;
+        }
+    }
+
+    /// <summary>
+    /// Re-read the active profile from disk and apply it. Called after the
+    /// editor saves, so edits to the profile that is already live take
+    /// effect without the person having to reselect it.
+    /// </summary>
+    public string? ReloadActiveProfile() => ApplyProfile(ActiveProfileName);
 
     public void Start()
     {
@@ -106,19 +216,10 @@ public sealed class ModController : IDisposable
 
             try
             {
-                var appDataRoot = Path.Combine(
-                    Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "K617Mod");
-                var defaultProfilePath = Path.Combine(
-                    AppContext.BaseDirectory, "Mapping", "Data", "profile.default.json");
-
-                var store = new JsonProfileStore(appDataRoot);
-                ProfileBootstrapper.EnsureBootstrappedAndGetStartupProfileName(store, defaultProfilePath);
-
-                // Run whatever profile the config window is showing, so the
-                // two can't disagree about which one is active.
-                var profile = store.LoadProfile(ProfileSession.Current.SelectedProfileName);
+                var profile = _store.LoadProfile(ActiveProfileName);
                 var keyMap = KeyMapLoader.FromDocument(profile.KeyMapping);
                 var tuning = new TuningSource(profile.ToTuning());
+                _tuning = tuning;
 
                 _hidSource = new K617HidSource();
                 _suppressor = new K617KeySuppressor();
@@ -245,6 +346,11 @@ public sealed class ModController : IDisposable
         _orchestrator = null;
         _hidSource = null;
         _suppressor = null;
+
+        // Belongs to the pipeline that just went away. Left dangling it
+        // would accept curve changes that nothing is reading, and the
+        // next Start() would replace it anyway.
+        _tuning = null;
     }
 
     /// <summary>
@@ -254,7 +360,7 @@ public sealed class ModController : IDisposable
     /// </summary>
     private void TryPersistMode(bool active)
     {
-        try { _settingsStore.SetLastModeActive(active); }
+        try { _store.SetLastModeActive(active); }
         catch { /* the mode itself already changed; only the memory of it didn't save */ }
     }
 

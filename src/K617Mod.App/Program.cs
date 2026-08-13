@@ -24,7 +24,9 @@ var keyMap = KeyMapLoader.FromDocument(profile.KeyMapping);
 // The profile's own response curves and digital threshold now drive the
 // pipeline, rather than the fixed constants InputState used to read.
 // Held in a TuningSource rather than passed as a plain value so it can
-// be swapped while running, once there's a UI to swap it from.
+// be swapped while running - which the WPF build now does, through
+// ModController.ApplyProfile. This console host has no way to change
+// profile mid-run, so it only ever holds the one.
 var tuningSource = new TuningSource(profile.ToTuning());
 
 IHidKeySource hidSource = new K617HidSource();

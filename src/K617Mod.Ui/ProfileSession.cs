@@ -115,6 +115,19 @@ public sealed class ProfileSession : INotifyPropertyChanged
             _selectedProfileName = value;
             OnPropertyChanged();
             LoadSelectedProfile();
+
+            // Selecting a profile makes it the live one immediately.
+            // Raised here rather than inside LoadSelectedProfile() because
+            // that method also runs on Revert and at construction, and
+            // neither of those changes what is on disk under the selected
+            // name - so neither should disturb a running mod.
+            //
+            // Note this discards unsaved edits to the profile being left,
+            // exactly as it did before. Worth a confirmation prompt
+            // eventually; it is a bigger change than it looks, because
+            // "cancel" has to put the combo box back without re-entering
+            // this setter.
+            LiveProfileChanged?.Invoke(this, EventArgs.Empty);
         }
     }
 
@@ -144,6 +157,28 @@ public sealed class ProfileSession : INotifyPropertyChanged
 
     /// <summary>Raised after a profile is loaded, so open editors can re-read their values.</summary>
     public event EventHandler? ProfileReloaded;
+
+    /// <summary>
+    /// Raised when a different profile is selected, or when the selected
+    /// one is saved - in other words, whenever what is on disk under the
+    /// selected name should become what the mod is running.
+    ///
+    /// An event rather than this class calling ModController directly.
+    /// The session's job is editing profiles; whether anything is
+    /// currently running them is not its business, and wiring it that way
+    /// keeps the pages testable without a HID device or a ViGEm driver
+    /// anywhere in reach. App.xaml.cs owns the connection between the
+    /// two, which is where the rest of the composition already lives.
+    /// </summary>
+    public event EventHandler? LiveProfileChanged;
+
+    /// <summary>
+    /// Surface a problem that happened outside this class - specifically,
+    /// the mod failing to take a profile the editor loaded and saved
+    /// perfectly well. Shown in the same place as load and save errors,
+    /// because from the person's side it is the same kind of news.
+    /// </summary>
+    public void ReportError(string message) => LoadError = message;
 
     public void Assign(ControlBinding target, string keyName)
     {
@@ -199,9 +234,16 @@ public sealed class ProfileSession : INotifyPropertyChanged
                 StringComparer.OrdinalIgnoreCase);
 
             _store.SaveProfile(profile);
-            _store.SetLastActiveProfileName(SelectedProfileName);
             HasUnsavedChanges = false;
             LoadError = string.Empty;
+
+            // What was just written is now what should be running.
+            // SetLastActiveProfileName used to be called here too; it
+            // moved to ModController.ApplyProfile, so that selecting a
+            // profile is remembered even without a save - and so the
+            // read-only Default, which never reaches this line, can be
+            // the remembered one.
+            LiveProfileChanged?.Invoke(this, EventArgs.Empty);
         }
         catch (Exception ex)
         {

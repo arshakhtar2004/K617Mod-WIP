@@ -1071,3 +1071,128 @@ Implementation, in the order it was built:
 itself, and the persisted-mode-on-relaunch behaviour, still need a real
 smoke test on Windows: toggle off, relaunch, confirm it opens off (and
 the keyboard types normally); toggle on, relaunch, confirm it opens on.
+
+## Profiles wired into the running mod, 13 Aug
+
+### What was actually broken
+
+Profiles were half-connected, not disconnected. `ModController.Start()`
+already read `ProfileSession.Current.SelectedProfileName`, loaded that
+profile and built both the key map and the tuning from it — so the
+profile in the dropdown was genuinely the profile the mod ran, at the
+moment it started. Nothing hardcoded was being read there;
+`InputTuningConfig` had already been stripped to raw depth calibration.
+
+The gaps were all after `Start()`:
+
+- **Nothing could reach a running pipeline.** `ModController` built its
+  `TuningSource` as a local inside `Start()` and dropped the reference on
+  return, so it physically could not swap tuning later. Saving a curve
+  did nothing until the mod was toggled off and on.
+- **Switching profile mid-run did nothing.** `ProfileSession` raised
+  `ProfileReloaded`, but only the two settings pages listened.
+- **Key bindings could not hot-swap at all.** `InputState` read an
+  `IKeyMap` once in its constructor and cached the analog key names in
+  readonly fields. Curves had `ITuningSource` built for live swapping;
+  the mapping half had no equivalent.
+- **Profile choice was only remembered on Apply.**
+  `SetLastActiveProfileName` was called inside `Apply()`, which returns
+  early for read-only profiles — so selecting a profile and closing lost
+  the choice, and `Default` could never be the remembered one.
+
+### Decisions
+
+**Key bindings hot-swap, same as curves.** The alternative was rebuilding
+the pipeline on remap — about 30 lines instead of 150 — but it drops
+suppression and the virtual pad for a moment, which the game sees as the
+controller disconnecting and reconnecting, and it briefly lets a stray
+keystroke through to the game. Rejected against the "save applies live"
+decision from 12 Aug.
+
+**Selecting a profile takes effect immediately.** Apply/Revert now only
+govern unsaved edits within a profile, which is what those buttons
+already meant. Also removes the special case where `Default` could never
+be made active, since that path no longer goes through a save.
+
+### How it works
+
+`KeyBindingSet` (Core/State) is the mapping half of a profile in the
+shape the pipeline consumes — the exact counterpart of `ProfileTuning`.
+Immutable; changing bindings means building a new one and swapping it.
+It holds analog bindings as an action → key dictionary rather than a
+field per control, so `InputState` keeps sole ownership of which action
+ids are analog and adding a seventh analog control touches one file.
+
+The two halves swap by deliberately different mechanisms:
+
+- **Tuning** stays lock-free. Read once per tick, nothing else touches
+  it, so a volatile reference assignment is enough.
+- **Bindings** go under the lock `Update()` and `Snapshot()` already
+  share, because they are read together with the mutable depth values
+  they index into and the two have to change as one thing. That lock is
+  taken 64 times a second regardless; the swap happens when a person
+  clicks something.
+
+`AppOrchestrator.ApplyKeyMap` updates the position → key lookup on its
+own `_keyMap` field (now `volatile`, read from the HID thread) and then
+calls `InputState.ApplyBindings`. That order is deliberate: a report
+arriving between the two resolves to a key name the old bindings don't
+recognise and is dropped — one lost reading at 64Hz. The reverse order
+could route a reading from the old physical position onto a new action,
+briefly moving the wrong control.
+
+`InputState.ApplyBindings` carries depth readings across for keys that
+stay bound, so a key held down through a profile change doesn't
+spuriously release — a handbrake letting go mid-corner would get blamed
+on the game. Keys that are no longer bound are dropped, which stops a
+stale depth reappearing if that key is rebound later.
+
+### Wiring
+
+`ModController.ApplyProfile(name)` is the single entry point. Running →
+swaps both halves in place. Stopped → records and persists the choice for
+the next `Start()`. Returns `string?` rather than throwing: a profile
+that won't load leaves the mod running correctly on the previous one,
+which isn't an error state for the mod, only for whatever asked.
+
+`ProfileSession` raises `LiveProfileChanged` on selection change and
+after a successful save. `App.xaml.cs` is the only place the two are
+connected — the session's job is editing profiles, the controller's is
+deciding what a change means for a pipeline that may or may not be
+running, and keeping the call one-way leaves the settings pages testable
+with no HID device or ViGEm driver in reach.
+
+`ModController` no longer reaches into `ProfileSession.Current`, and no
+longer creates a fresh `JsonProfileStore` and re-bootstraps on every
+`Start()`. Bootstrap happens once in its constructor. `ProfileSession`
+also bootstraps in its own constructor; both calls are idempotent, and
+keeping ModController's means the tray-only path works without the
+window ever being constructed.
+
+`MainWindow` gained a profile selector in the header beside the ON/OFF
+switch. Which profile is live is app-wide state, the same as the mode.
+The two page-level combos still work — all three are views of one
+`ProfileSession`.
+
+### Known, deliberately left
+
+Switching profile with unsaved edits still discards them silently, as it
+did before. It deserves a confirmation prompt, but that is a bigger
+change than it looks: "cancel" has to put the combo box back without
+re-entering the setter and firing another change.
+
+### Verification
+
+No .NET SDK ships in the sandbox, and NuGet is blocked by the proxy, so
+`dotnet test` cannot run there. The SDK itself installed from Ubuntu's
+archive, which was enough to type-check all of `K617Mod.Core` (excluding
+the two files needing HidSharp/ViGEm, both untouched) plus
+`ModController.cs` and `ProfileSession.cs` against real Core sources —
+clean, zero warnings.
+
+The new xunit tests were also re-implemented as a plain console runner
+against the same Core sources, since xunit itself can't be restored. All
+22 assertions pass, including a 20,000-iteration swap loop running
+against a concurrent `Snapshot()` reader. Everything WPF-facing
+(`App.xaml.cs`, `MainWindow.xaml`) is unverified — it needs a Windows
+build.

@@ -18,4 +18,10 @@ public interface IInputState
 
     /// <summary>Read every current value atomically and compute one tick's controller state.</summary>
     ControllerStateSnapshot Snapshot();
+
+    /// <summary>
+    /// Replace the key bindings in use, without stopping. Safe to call
+    /// from a UI thread while the HID and tick threads are running.
+    /// </summary>
+    void ApplyBindings(KeyBindingSet bindings);
 }

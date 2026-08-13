@@ -129,6 +129,24 @@
                            FontSize="14"
                            Margin="10,0,20,0"
                            VerticalAlignment="Center" />
+
+                <!-- Which profile is live is app-wide state, the same as
+                     the on/off switch, so it belongs up here rather than
+                     only inside the settings pages. The two page-level
+                     combos still work and still agree with this one - all
+                     three are views of the same ProfileSession. -->
+                <TextBlock Text="Profile"
+                           Foreground="#CCCCCC"
+                           FontSize="14"
+                           Margin="0,0,8,0"
+                           VerticalAlignment="Center" />
+                <ComboBox x:Name="ProfileCombo"
+                          Width="140"
+                          Margin="0,0,20,0"
+                          VerticalAlignment="Center"
+                          ItemsSource="{Binding ProfileNames}"
+                          SelectedItem="{Binding SelectedProfileName, Mode=TwoWay}" />
+
                 <Ellipse x:Name="StatusDot"
                          Width="10" Height="10"
                          Margin="0,0,8,0"

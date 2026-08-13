@@ -64,6 +64,21 @@ public partial class App : Application
         _controller = new ModController();
         _tray = new TrayIcon(_controller);
 
+        // Connect the profile editor to the running mod. This is the only
+        // place the two know about each other: the session's job is
+        // editing profiles, the controller's job is deciding what a
+        // profile change means for a pipeline that may or may not be
+        // running. Wiring them here rather than having the session call
+        // the controller directly keeps the settings pages testable
+        // without a HID device or a ViGEm driver anywhere in reach.
+        //
+        // Done before the auto-start below, so the first Start() already
+        // has the right profile instead of starting on one and being
+        // corrected a moment later.
+        var session = ProfileSession.Current;
+        ApplyLiveProfile(session);
+        session.LiveProfileChanged += (_, _) => ApplyLiveProfile(session);
+
         // Auto-start only if that's the mode the person left it in last
         // time they explicitly toggled it - a fresh install with no saved
         // preference still starts, matching the original "clicking the
@@ -71,6 +86,22 @@ public partial class App : Application
         if (_controller.ShouldStartOnLaunch())
         {
             _controller.Start();
+        }
+    }
+
+    /// <summary>
+    /// Pushes the session's selected profile into the mod, and puts any
+    /// failure back in front of the person rather than swallowing it.
+    /// A profile that saves fine but won't load is the case worth
+    /// catching: without this the editor would look like it had worked
+    /// while the mod quietly carried on with the previous settings.
+    /// </summary>
+    private void ApplyLiveProfile(ProfileSession session)
+    {
+        var error = _controller?.ApplyProfile(session.SelectedProfileName);
+        if (error is not null)
+        {
+            session.ReportError(error);
         }
     }
 

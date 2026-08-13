@@ -25,12 +25,20 @@ namespace K617Mod.Core.Orchestration;
 public sealed class AppOrchestrator : IDisposable
 {
     private readonly IHidKeySource _hidSource;
-    private readonly IKeyMap _keyMap;
     private readonly IInputState _inputState;
     private readonly IVirtualPad _virtualPad;
     private readonly IKeySuppressor _keySuppressor;
     private readonly bool _enableSuppression;
     private readonly int _tickIntervalMs;
+
+    /// <summary>
+    /// Volatile rather than readonly because <see cref="ApplyKeyMap"/>
+    /// replaces it while the HID thread is reading it in
+    /// OnReportReceived. A reference assignment is already atomic; the
+    /// volatile is what guarantees the HID thread sees the new reference
+    /// promptly rather than a cached one.
+    /// </summary>
+    private volatile IKeyMap _keyMap;
 
     private volatile bool _running;
     private Thread? _tickThread;
@@ -64,6 +72,31 @@ public sealed class AppOrchestrator : IDisposable
         _keySuppressor = keySuppressor;
         _enableSuppression = enableSuppression;
         _tickIntervalMs = 1000 / tickRateHz;
+    }
+
+    /// <summary>
+    /// Swap in a different profile's key map while the pipeline runs.
+    ///
+    /// Two things have to change together: the position -> key lookup
+    /// this class does on the HID thread, and the key -> action bindings
+    /// InputState holds. They are updated in that order deliberately. A
+    /// report arriving in between resolves to a key name from the new map
+    /// that the old bindings don't recognise, and is ignored - one
+    /// dropped reading at 64Hz. The reverse order could route a reading
+    /// from the *old* physical position onto a *new* action, which would
+    /// briefly move the wrong control.
+    ///
+    /// Curves are swapped separately, through the ITuningSource this was
+    /// constructed with. Kept apart because they are genuinely
+    /// independent: changing a curve does not need the HID thread told
+    /// anything at all.
+    /// </summary>
+    public void ApplyKeyMap(IKeyMap keyMap)
+    {
+        ArgumentNullException.ThrowIfNull(keyMap);
+
+        _keyMap = keyMap;
+        _inputState.ApplyBindings(KeyBindingSet.FromKeyMap(keyMap));
     }
 
     public void Start()

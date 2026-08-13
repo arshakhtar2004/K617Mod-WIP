@@ -26,6 +26,13 @@ public partial class MainWindow : Window
         _controller = controller;
         InitializeComponent();
 
+        // Only the profile combo gets the session as its data context,
+        // not the whole window. The window's other controls read the
+        // controller's status, which is a different object; giving the
+        // window one DataContext would mean reaching the other through an
+        // ElementName or relative-source path for no gain.
+        ProfileCombo.DataContext = ProfileSession.Current;
+
         _controller.StatusChanged += OnStatusChanged;
         RefreshStatus();
     }
