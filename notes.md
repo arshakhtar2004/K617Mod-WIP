@@ -1332,3 +1332,51 @@ a successful publish. Next run of `publish.cmd` is the real test.
 Also present in the same build output, unrelated and pre-existing:
 `ActionButtonMap.cs(51,37): warning CS8601` (possible null reference
 assignment). Not touched by any of today's work; left alone.
+
+## Correction: the DPI manifest wasn't the fix, 13 Aug
+
+The publish still failed with the identical MSB3094 after removing the
+DPI settings from app.manifest - the WFAC010 warning it had been
+diagnosed from was sitting next to the error by coincidence, not causing
+it. Worth recording plainly: that was a wrong diagnosis, arrived at by
+pattern-matching a warning to an error that happened to print nearby,
+not by tracing the actual failure.
+
+Couldn't reproduce MSB3094 locally either - built a minimal stand-in
+(ClassLib with the same Content+EmbeddedResource+None item shape,
+referenced by a console app) and it published clean, which at least
+ruled out the profile.default.json dual-typing as the cause. No Windows
+box and no WPF workload in the sandbox, so nothing closer to the real
+project could be tried.
+
+Read the SDK source instead of guessing again:
+`Microsoft.NET.Publish.targets` line 360 (`8.0.129`, close enough to
+Arsh's `8.0.424` to trust) is `_CopyResolvedFilesToPublishPreserveNewest`
+- the error meant two files with `CopyToOutputDirectory=PreserveNewest`
+resolved to the same relative output path. Asked Arsh to capture a
+`-v:detailed` log and grep the context around MSB3094 rather than
+guess a third fix blind.
+
+**Then it published clean on the very next run - unedited.** Same
+project, same command, no code changed since the second failure. That
+pattern - fails, fails, succeeds with nothing touched - points at a
+stale incremental-build cache rather than a real project defect:
+`dotnet test` (run first) builds Debug with no RID; `publish.cmd`
+publishes Release for win-x64 self-contained singlefile. Both write into
+the same `obj\` folder, and MSBuild's incremental bookkeeping can hold
+onto an item list from one build mode that no longer matches the other.
+
+`publish.cmd` now deletes `bin\`/`obj\` for both projects before every
+publish, specifically so this can't recur silently after some other
+build touches the same folders. Costs 30-60 seconds; a stale-cache bug
+that only shows up "sometimes, unpredictably" is worse than that cost
+every time.
+
+The `ApplicationHighDpiMode` change stays - it wasn't the fix, but it's
+still the documented-correct way to declare DPI awareness when
+`UseWindowsForms=true`, and it did make the WFAC010 warning go away for
+real reasons, just not MSB3094's.
+
+**Verified:** `src\dist\K617Mod.exe` exists on Arsh's machine,
+confirmed via `Test-Path`. Launch itself (tray icon, elevation prompt,
+mod status) not yet checked.
