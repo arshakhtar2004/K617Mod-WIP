@@ -79,8 +79,9 @@ dotnet run
 (Run the terminal as Administrator - suppression needs it, same as
 Part 5.)
 
-1. Hold a key on the K617 HE, then press Enter when prompted (interface
-   detection, same as every hardware harness so far).
+1. It connects straight away - no key needs holding. Interface selection
+   now reads the report descriptor's usage page instead of probing for
+   live data (the older harnesses in Parts 1-5 still use the probe).
 2. Confirm it says **Connected: True** and **Suppression: ACTIVE**.
 3. Open Forza Horizon 6, set the controller scheme, and actually drive.
 4. Press Enter in the console to stop - K617 typing should return to

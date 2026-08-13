@@ -9,10 +9,32 @@
     <TargetFramework>net8.0-windows</TargetFramework>
     <UseWPF>true</UseWPF>
 
+    <!-- WPF has no tray icon of its own. WinForms' NotifyIcon is the
+         built-in one, and turning this on costs a build flag rather than a
+         third-party package - which matters for a project someone else is
+         meant to clone and build without surprises. Both flags together in
+         one project is supported on .NET 8; the cost is that
+         System.Windows.Forms types need qualifying where their names clash
+         with WPF's (Application, MessageBox), which TrayIcon.cs does. -->
+    <UseWindowsForms>true</UseWindowsForms>
+
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
     <RootNamespace>K617Mod.Ui</RootNamespace>
   </PropertyGroup>
+
+  <ItemGroup>
+    <!-- UseWindowsForms would otherwise add System.Drawing and
+         System.Windows.Forms as GLOBAL implicit usings, which breaks
+         existing files rather than helping: CurveEditor.xaml.cs already
+         imports System.Windows.Media and uses Point and Color unqualified,
+         and both names exist in System.Drawing too - so every one of those
+         references becomes ambiguous the moment WinForms is switched on.
+         Removing them keeps WinForms opt-in per file, which is what
+         TrayIcon.cs does with its own alias. -->
+    <Using Remove="System.Drawing" />
+    <Using Remove="System.Windows.Forms" />
+  </ItemGroup>
 
   <ItemGroup>
     <!-- Wired in now that the empty window is confirmed building. The

@@ -45,10 +45,9 @@ IKeySuppressor keySuppressor = new K617KeySuppressor();
 
 using var orchestrator = new AppOrchestrator(hidSource, keyMap, virtualPad, keySuppressor, tuningSource);
 
-Console.WriteLine("\nHold a key on the K617 HE NOW, then press Enter.");
-Console.WriteLine("(Same reason as Part 1's harness - interface detection needs live data.)");
-Console.ReadLine();
-
+// No "hold a key down" prompt any more: the HID source picks its interface
+// from the report descriptor's usage page, so selection is instant and
+// needs no live data. The old data probe survives only as a fallback.
 try
 {
     orchestrator.Start();

@@ -20,9 +20,24 @@ public sealed class K617KeySuppressor : IKeySuppressor
     private volatile bool _running;
     private string? _startupError;
     private InterceptionContext? _context;
+    private long _suppressedKeyCount;
+
+    /// <summary>
+    /// How many K617 keystrokes have been dropped since Start(). Exists so
+    /// the host can tell "nobody has touched the keyboard" apart from
+    /// "keys are being swallowed and nothing is coming out the other end" -
+    /// the second is the un-woken-device failure, and it looks identical to
+    /// a working app if you only watch the HID stream.
+    ///
+    /// Deliberately on the concrete class rather than IKeySuppressor: only
+    /// the composition root reads it, and the interface stays the minimal
+    /// start/stop contract every fake in the tests already implements.
+    /// </summary>
+    public long SuppressedKeyCount => Interlocked.Read(ref _suppressedKeyCount);
 
     public void Start()
     {
+        Interlocked.Exchange(ref _suppressedKeyCount, 0);
         _thread = new Thread(Run) { IsBackground = true, Name = "K617KeySuppressor" };
         _thread.Start();
 
@@ -79,6 +94,7 @@ public sealed class K617KeySuppressor : IKeySuppressor
             var hardwareId = device.GetHardwareId();
             if (HardwareIdMatcher.IsK617(hardwareId))
             {
+                Interlocked.Increment(ref _suppressedKeyCount);
                 continue; // dropped: no Forward() -> Windows never sees this keystroke
             }
 

@@ -18,6 +18,8 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "K617Mod.OutputHarness", "K6
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "K617Mod.SuppressionHarness", "K617Mod.SuppressionHarness\K617Mod.SuppressionHarness.csproj", "{815C2922-B0A8-429E-95D0-FC9305236C7D}"
 EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "K617Mod.CaptureHarness", "K617Mod.CaptureHarness\K617Mod.CaptureHarness.csproj", "{B79BB814-FF97-4952-A716-048725B706F9}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -52,6 +54,10 @@ Global
 		{815C2922-B0A8-429E-95D0-FC9305236C7D}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{815C2922-B0A8-429E-95D0-FC9305236C7D}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{815C2922-B0A8-429E-95D0-FC9305236C7D}.Release|Any CPU.Build.0 = Release|Any CPU
+		{B79BB814-FF97-4952-A716-048725B706F9}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{B79BB814-FF97-4952-A716-048725B706F9}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{B79BB814-FF97-4952-A716-048725B706F9}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{B79BB814-FF97-4952-A716-048725B706F9}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -60,5 +66,6 @@ Global
 		{F8638A8B-55D7-4775-8840-3E51791E50AC} = {5AB20005-9EA0-40CE-939C-CA1E7A3066F0}
 		{E32D9B4A-0313-456A-99D1-12A65F4EBDB0} = {5AB20005-9EA0-40CE-939C-CA1E7A3066F0}
 		{815C2922-B0A8-429E-95D0-FC9305236C7D} = {5AB20005-9EA0-40CE-939C-CA1E7A3066F0}
+		{B79BB814-FF97-4952-A716-048725B706F9} = {5AB20005-9EA0-40CE-939C-CA1E7A3066F0}
 	EndGlobalSection
 EndGlobal

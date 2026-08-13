@@ -17,4 +17,8 @@ public interface IProfileStore
 
     string? GetLastActiveProfileName();
     void SetLastActiveProfileName(string name);
+
+    /// <summary>Defaults to true (on) when nothing has been saved yet - see AppSettingsDocument.LastModeActive.</summary>
+    bool GetLastModeActive();
+    void SetLastModeActive(bool active);
 }

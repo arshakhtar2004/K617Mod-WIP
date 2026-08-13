@@ -1,0 +1,19 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net8.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <RootNamespace>K617Mod.CaptureHarness</RootNamespace>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <!-- Only for the VID/PID and the known report layout, so this harness
+         can't drift from what the real pipeline looks for. It deliberately
+         does NOT use K617HidSource - the whole point is to read every
+         interface raw, including the ones the real code rejects. -->
+    <ProjectReference Include="..\K617Mod.Core\K617Mod.Core.csproj" />
+  </ItemGroup>
+
+</Project>

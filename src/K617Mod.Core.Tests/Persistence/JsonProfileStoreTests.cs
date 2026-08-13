@@ -186,4 +186,53 @@ public class JsonProfileStoreTests : IDisposable
 
         Assert.Equal("FH6", reopened.GetLastActiveProfileName());
     }
+
+    [Fact]
+    public void LastModeActive_DefaultsToTrue()
+    {
+        // Null-in-storage means "never set", treated as on - a fresh
+        // install should still auto-start, matching the original
+        // always-auto-start behaviour from before this setting existed.
+        Assert.True(_store.GetLastModeActive());
+    }
+
+    [Fact]
+    public void LastModeActive_PersistsAfterSet()
+    {
+        _store.SetLastModeActive(false);
+        Assert.False(_store.GetLastModeActive());
+
+        _store.SetLastModeActive(true);
+        Assert.True(_store.GetLastModeActive());
+    }
+
+    [Fact]
+    public void LastModeActive_SurvivesANewStoreInstance()
+    {
+        _store.SetLastModeActive(false);
+
+        var reopened = new JsonProfileStore(_tempDir);
+
+        Assert.False(reopened.GetLastModeActive());
+    }
+
+    [Fact]
+    public void SettingActiveProfileAndModeActive_BothPersistIndependently()
+    {
+        // Regression test: the app-settings.json setters used to each
+        // construct a brand new AppSettingsDocument from scratch and
+        // overwrite the whole file, so setting one field silently wiped
+        // out whatever the other one had just saved. Load-modify-save
+        // fixed that - this proves both fields survive regardless of
+        // which order they're set in.
+        _store.SetLastActiveProfileName("FH6");
+        _store.SetLastModeActive(false);
+
+        Assert.Equal("FH6", _store.GetLastActiveProfileName());
+        Assert.False(_store.GetLastModeActive());
+
+        _store.SetLastModeActive(true);
+        Assert.Equal("FH6", _store.GetLastActiveProfileName()); // still there
+        Assert.True(_store.GetLastModeActive());
+    }
 }

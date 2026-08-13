@@ -76,21 +76,43 @@ public sealed class JsonProfileStore : IProfileStore
         // error - simpler for callers than forcing an existence check first.
     }
 
-    public string? GetLastActiveProfileName()
-    {
-        if (!File.Exists(_appSettingsPath)) return null;
-
-        var json = File.ReadAllText(_appSettingsPath);
-        var settings = JsonSerializer.Deserialize<AppSettingsDocument>(json, Options);
-        return settings?.LastActiveProfileName;
-    }
+    public string? GetLastActiveProfileName() => LoadSettings().LastActiveProfileName;
 
     public void SetLastActiveProfileName(string name)
     {
         ValidateName(name);
-        var settings = new AppSettingsDocument { LastActiveProfileName = name };
-        File.WriteAllText(_appSettingsPath, JsonSerializer.Serialize(settings, Options));
+        var settings = LoadSettings();
+        settings.LastActiveProfileName = name;
+        SaveSettings(settings);
     }
+
+    public bool GetLastModeActive() => LoadSettings().LastModeActive ?? true;
+
+    public void SetLastModeActive(bool active)
+    {
+        var settings = LoadSettings();
+        settings.LastModeActive = active;
+        SaveSettings(settings);
+    }
+
+    /// <summary>
+    /// Both settings setters load-modify-save through here rather than
+    /// each constructing a fresh AppSettingsDocument from scratch - the
+    /// earlier single-field version did the latter, which meant setting
+    /// the active profile silently wiped LastModeActive (and vice versa)
+    /// the moment a second field existed. Load-modify-save is what keeps
+    /// unrelated settings from clobbering each other as more get added.
+    /// </summary>
+    private AppSettingsDocument LoadSettings()
+    {
+        if (!File.Exists(_appSettingsPath)) return new AppSettingsDocument();
+
+        var json = File.ReadAllText(_appSettingsPath);
+        return JsonSerializer.Deserialize<AppSettingsDocument>(json, Options) ?? new AppSettingsDocument();
+    }
+
+    private void SaveSettings(AppSettingsDocument settings) =>
+        File.WriteAllText(_appSettingsPath, JsonSerializer.Serialize(settings, Options));
 
     private string PathFor(string name)
     {

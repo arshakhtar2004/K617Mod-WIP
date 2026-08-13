@@ -35,4 +35,47 @@ public static class HidProtocolConfig
     /// than dropping one bad report. Matches config.py's reasoning exactly.
     /// </summary>
     public const int RawDepthSanityMax = 500;
+
+    // --- Device wake ---
+
+    /// <summary>
+    /// The vendor command that switches the analog interface into
+    /// streaming mode, replacing the old "open iLumiPC's Travel Test page
+    /// once per power-on" manual step.
+    ///
+    /// Captured via a WebHID trace of illumipc.com's Travel Test toggle.
+    /// An earlier single-packet candidate from the same capture family
+    /// (cmd=0x21 sub=0x02, this exact shape) had FAILED an isolated,
+    /// clean-baseline test via Test-WakePacket.ps1 - the device replied
+    /// with its generic acknowledgment but produced zero depth reports
+    /// afterward, which is why this was not wired in on the capture
+    /// alone. It was retested end-to-end on the Python build
+    /// (test_wake_mvp.py, same clean-baseline structure: verified silent
+    /// after a full reboot, packet sent alone, depth confirmed on the
+    /// next keypress) and passed - see notes.md, "Wake command confirmed
+    /// on the MVP, 13 Aug".
+    ///
+    /// Each entry is one full report, first byte = report id.
+    /// K617HidSource sends them in order immediately after opening,
+    /// trying a plain Write first (this device's analog interface reports
+    /// MaxFeatureReportLength=0, so SetFeature is expected to fail here -
+    /// see TrySendWakeReports).
+    /// </summary>
+    public static readonly byte[][] WakeReports = { BuildWakeReport() };
+
+    private static byte[] BuildWakeReport()
+    {
+        // Zero-filled to the full 64-byte report (report id + 63-byte
+        // payload) up front, then the known bytes copied over the front -
+        // matches the exact wire form validated by test_wake_mvp.py.
+        var report = new byte[ReportLength];
+        byte[] known =
+        {
+            0x01, 0x21, 0x00, 0x00, 0x00, 0x18, 0x02,
+            0x3e, 0x26, 0x3e, 0x1e, 0x1e, 0x1e, 0x3e, 0x1e, 0x1e, 0x3e, 0x3e, 0x3e, 0x3e,
+            0x00, 0x0e,
+        };
+        Array.Copy(known, report, known.Length);
+        return report;
+    }
 }

@@ -1,0 +1,8 @@
+# Build output
+[Bb]in/
+[Oo]bj/
+*.user
+.vs/
+
+# Local capture logs and vendor artefacts
+*-capture.txt
